@@ -15,7 +15,7 @@ glslr --net --port PORT --params NUMBER example.glsl
 ```
 
 The parameters must be sent via UDP to the PORT in the form: 
-"param0 param1 param2 ... paramN;".
+*"param0 param1 param2 ... paramN;"*.
 A reference is to use PureData's object [netsend].
 Currently only integer and float variables are supported.
 
