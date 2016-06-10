@@ -1,5 +1,5 @@
 # glslr
-**glslr** is a GLSL livecoding framework for x86 architecture.
+**glslr** is a GLSL a ultra-lightweight livecoding framework for x86 architecture.
 
 **glslr** watches for changes in the input GLSL file and renders them to screen.
 
