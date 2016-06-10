@@ -1,6 +1,8 @@
 # glslr
 **glslr** is a GLSL livecoding framework for x86 architecture.
+
 **glslr** watches for changes in the input GLSL file and renders them to screen.
+
 **glslr** is able to receive control data through a network socket which is then fed to the shader in the form of uniform variables.
 
 ##Usage:
