@@ -11,10 +11,10 @@ glslr example.glsl
 ```
 ##Usage with network:
 ```
-glslr --net --port PORT --params NUMBER example.glsl
+glslr --net --port [port] --params N example.glsl
 ```
 
-The parameters must be sent via UDP to the PORT in the form: 
+The parameters must be sent via UDP to the [port] in the form: 
 *"param0 param1 param2 ... paramN;"*.
 A reference is to use PureData's object [netsend].
 Currently only integer and float variables are supported.
@@ -28,6 +28,6 @@ uniform float m0;
 uniform float mN;
 ```
 
-**glslr** is a fork of pijockey-sound (https://github.com/k-o-l-e-k-t-i-v/pijockey-sound), a glsl livecoding framework for RaspberryPi.
+**glslr** is a fork of pijockey-sound (https://github.com/k-o-l-e-k-t-i-v/pijockey-sound), a GLSL livecoding framework for RaspberryPi.
 **glslr** was ported to x86, using GLFW.
 
