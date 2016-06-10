@@ -445,8 +445,8 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 	
     g->viewport.x = 0;
 	g->viewport.y = 0;
-	g->viewport.z = 1280;
-	g->viewport.w = 1024;
+	g->viewport.z = 800;
+	g->viewport.w = 600;
 	g->layout = layout;
     g->array_buffer_fullscene_quad = 0;
     g->vertex_shader = 0;
@@ -579,7 +579,6 @@ static int Graphics_ApplyWindowChange(Graphics *g)
 
 void Graphics_setWindowSize(int _width, int _height) {
     glViewport(0.0,0.0,(float)_width,(float)_height);
-	glOrtho(0.0, 160.0, 120.0, 0.0, -1.0, 1.0);
 }
 
 void Graphics_setSourceSize(int _width, int _height) {
