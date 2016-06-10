@@ -20,7 +20,7 @@ Currently only integer and float variables are supported.
 
 ## Using parameters:
 
-**glslr** makes the parameters available in GLSL as uniform float type. The parameters can be accessed from the code like this, where N is the number of parameters specified on the command line (cuurently max 99).
+**glslr** makes the parameters available in GLSL as uniform float type. The parameters can be accessed from the code (where N is the number of parameters specified on the command line, currently max 99) like this:
 ```
 uniform float m0;
 ..
