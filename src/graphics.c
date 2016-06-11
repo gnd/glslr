@@ -538,14 +538,15 @@ static int Graphics_SetupInitialState(Graphics *g)
 	glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 	glDisable(GL_SAMPLE_COVERAGE);
 
+/*
 	{
 		int width, height;
-		//Graphics_GetSourceSize(g->video, &width, &height);
+		//Graphics_GetWindowSize(g, &width, &height);
 		Graphics_getWindowWidth(g, &width);
 		Graphics_getWindowHeight(g, &height);
 		glViewport(0, 0, width, height);
 	}
-	return 0;
+*/	return 0;
 }
 
 static int Graphics_ApplyWindowChange(Graphics *g)

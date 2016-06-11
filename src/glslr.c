@@ -554,6 +554,7 @@ static void Glslr_SetUniforms(Glslr *gx)
 	Graphics_GetWindowSize(gx->graphics, &width, &height);
 	mouse_x = (double)gx->mouse.x / width;
 	mouse_y = (double)gx->mouse.y / height;
+	//printf("mousex: %d\r\n", gx->mouse.x);
 
 	Graphics_SetUniforms(gx->graphics, t / 1000.0,
 	                     gx->net_input_val,
@@ -587,7 +588,7 @@ static int Glslr_Update(Glslr *gx)
 	if (gx->use_net) {
 		dopoll(gx);
 	}
-	/*Glslr_UpdateMousePosition(gx);*/
+	//Glslr_UpdateMousePosition(gx);
 	Glslr_SetUniforms(gx);
 	Glslr_Render(gx);
 	Glslr_AdvanceFrame(gx);
