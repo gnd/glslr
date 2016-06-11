@@ -1,5 +1,3 @@
-/* -*- Mode: c; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*- */
-
 /* TODO
 +- socket into separate file
 +- fix tcp receive
@@ -50,7 +48,7 @@ typedef struct {
 } SourceObject;
 
 
-struct PJContext_ {
+struct Glslr_ {
     Graphics *graphics;
     Graphics_LAYOUT layout_backup;
     int is_fullscreen;
@@ -93,9 +91,10 @@ static int protocol;
 
 static void sockerror(const char *s);
 static void x_closesocket(int fd);
-static void dopoll(PJContext *pj);
+static void dopoll(Glslr *gx);
 #define BUFSIZE 8192
 
+#define GXDebug(gx, printf_arg) ((gx)->verbose.debug ? (printf printf_arg) : 0)
 
 static void addport(int fd)
 {
@@ -151,7 +150,7 @@ static void doconnect(void)
 }
 
 
-static void udpread(PJContext *pj)
+static void udpread(Glslr *gx)
 {
     char buf[BUFSIZE];
     ssize_t len;
@@ -162,7 +161,7 @@ static void udpread(PJContext *pj)
         errno = 0;
         len = recv(sockfd, buf, BUFSIZE, MSG_DONTWAIT);
         if (len > 0) {
-            udpmakeoutput(buf, pj);
+            udpmakeoutput(buf, gx);
         }
         err = errno;
         errno = 0;
@@ -181,7 +180,7 @@ static void udpread(PJContext *pj)
 }
 
 
-void udpmakeoutput(char *buf, PJContext *pj) {
+void udpmakeoutput(char *buf, Glslr *gx) {
 
     char line[BUFSIZE];
     char *p, *val;
@@ -196,8 +195,8 @@ void udpmakeoutput(char *buf, PJContext *pj) {
     p = line;
 
     i = 0;
-    curr = pj->net_input_val;
-    while (((val = strsep(&p, " ")) != NULL) && (i < pj->net_params)) {
+    curr = gx->net_input_val;
+    while (((val = strsep(&p, " ")) != NULL) && (i < gx->net_params)) {
 	curr->val = strtof(val,NULL);
         curr = curr->next;
 	i++;
@@ -267,7 +266,7 @@ static void x_closesocket(int fd)
     close(fd);
 }
 
-static void dopoll(PJContext *pj)
+static void dopoll(Glslr *gx)
 {
     t_fdpoll *fp;
     fd_set readset;
@@ -276,8 +275,8 @@ static void dopoll(PJContext *pj)
 
     FD_ZERO(&readset);
     FD_SET(fileno(stdin), &readset);
-    // no mouse FD_SET(pj->mouse.fd, &readset);
-    if (pj->use_tcp) {
+    // no mouse FD_SET(gx->mouse.fd, &readset);
+    if (gx->use_tcp) {
     	for (fp = fdpoll, i = nfdpoll; i--; fp++)
         	FD_SET(fp->fdp_fd, &readset);
     } else {
@@ -293,7 +292,7 @@ static void dopoll(PJContext *pj)
         perror("select");
         exit(1);
     } else {
-        if (pj->use_tcp) {
+        if (gx->use_tcp) {
 	    for (i = 0; i < nfdpoll; i++)
             if (FD_ISSET(fdpoll[i].fdp_fd, &readset))
                 tcpread(&fdpoll[i]);
@@ -302,14 +301,11 @@ static void dopoll(PJContext *pj)
         } else {
             if (FD_ISSET(sockfd, &readset))
             {   
-                udpread(pj);
+                udpread(gx);
             }
         }
     }
 }
-
-#define PJDebug(pj, printf_arg) ((pj)->verbose.debug ? (printf printf_arg) : 0)
-
 
 static double GetCurrentTimeInMilliSecond(void)
 {
@@ -343,39 +339,39 @@ static void SourceObject_Delete(void *so)
     free(so);
 }
 
-/* PJContext */
-int PJContext_Construct(PJContext *pj)
+/* Glslr */
+int Glslr_Construct(Glslr *gx)
 {
     int scaling_numer, scaling_denom;
     scaling_numer = 1;
     scaling_denom = 2;
-    pj->graphics = Graphics_Create(Graphics_LAYOUT_FULLSCREEN,
+    gx->graphics = Graphics_Create(Graphics_LAYOUT_FULLSCREEN,
                                    scaling_numer, scaling_denom);
-    if (!pj->graphics) {
+    if (!gx->graphics) {
         fprintf(stderr, "Graphics Initialize failed:\r\n");
         return 2;
     }
 
-    pj->is_fullscreen = 0;
-    pj->use_backbuffer = 0;
-    pj->use_tcp = 0;
-    pj->use_net = 0;
-    pj->port = 6666;
-    pj->mouse.x = 0;
-    pj->mouse.y = 0;
-    pj->mouse.fd = open(MOUSE_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
-    pj->net_input_val = NULL;
-    pj->net_params = 0;
-    pj->time_origin = GetCurrentTimeInMilliSecond();
-    pj->frame = 0;
-    pj->verbose.render_time = 0;
-    pj->verbose.debug = 0;
-    pj->scaling.numer = scaling_numer;
-    pj->scaling.denom = scaling_denom;
+    gx->is_fullscreen = 0;
+    gx->use_backbuffer = 0;
+    gx->use_tcp = 0;
+    gx->use_net = 0;
+    gx->port = 6666;
+    gx->mouse.x = 0;
+    gx->mouse.y = 0;
+    gx->mouse.fd = open(MOUSE_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
+    gx->net_input_val = NULL;
+    gx->net_params = 0;
+    gx->time_origin = GetCurrentTimeInMilliSecond();
+    gx->frame = 0;
+    gx->verbose.render_time = 0;
+    gx->verbose.debug = 0;
+    gx->scaling.numer = scaling_numer;
+    gx->scaling.denom = scaling_denom;
     return 0;
 }
 
-void PJContext_Listen(int use_tcp, int port)
+void Glslr_Listen(int use_tcp, int port)
 {
     int portno = port;
     struct sockaddr_in server;
@@ -429,55 +425,55 @@ void PJContext_Listen(int use_tcp, int port)
     }
 }
 
-void PJContext_Destruct(PJContext *pj)
+void Glslr_Destruct(Glslr *gx)
 {
     int i;
     RenderLayer *layer;
 
-    if (pj->mouse.fd >= 0) {
-        close(pj->mouse.fd);
+    if (gx->mouse.fd >= 0) {
+        close(gx->mouse.fd);
     }
-    for (i = 0; (layer = Graphics_GetRenderLayer(pj->graphics, i)) != NULL; i++) {
+    for (i = 0; (layer = Graphics_GetRenderLayer(gx->graphics, i)) != NULL; i++) {
         SourceObject_Delete(RenderLayer_GetAux(layer));
     }
-    Graphics_Delete(pj->graphics);
+    Graphics_Delete(gx->graphics);
 }
 
 
-static int PJContext_SwitchBackbuffer(PJContext *pj)
+static int Glslr_SwitchBackbuffer(Glslr *gx)
 {
-    pj->use_backbuffer ^= 1;
-    Graphics_SetBackbuffer(pj->graphics, pj->use_backbuffer);
-    return Graphics_ApplyOffscreenChange(pj->graphics);
+    gx->use_backbuffer ^= 1;
+    Graphics_SetBackbuffer(gx->graphics, gx->use_backbuffer);
+    return Graphics_ApplyOffscreenChange(gx->graphics);
 }
 
-static int PJContext_ChangeScaling(PJContext *pj, int add)
+/* currently not working */
+static int Glslr_ChangeScaling(Glslr *gx, int add)
 {
-    pj->scaling.denom += add;
-    if (pj->scaling.denom <= 0) {
-        pj->scaling.denom = 1;
+    gx->scaling.denom += add;
+    if (gx->scaling.denom <= 0) {
+        gx->scaling.denom = 1;
     }
-    if (pj->scaling.denom >= 16) {
-        pj->scaling.denom = 16;
+    if (gx->scaling.denom >= 16) {
+        gx->scaling.denom = 16;
     }
-    Graphics_SetWindowScaling(pj->graphics, pj->scaling.numer, pj->scaling.denom);
-    Graphics_ApplyWindowScalingChange(pj->graphics);
+    Graphics_SetWindowScaling(gx->graphics, gx->scaling.numer, gx->scaling.denom);
+    Graphics_ApplyWindowScalingChange(gx->graphics);
     {
         int width, height;
-        Graphics_GetSourceSize(pj->graphics, &width, &height);
+        Graphics_GetSourceSize(gx->graphics, &width, &height);
         printf("offscreen size = %dx%d px, scaling = %d/%d\r\n",
-               width, height, pj->scaling.numer, pj->scaling.denom);
+               width, height, gx->scaling.numer, gx->scaling.denom);
     }
     return 0;
 }
 
-static int PJContext_ReloadAndRebuildShadersIfNeed(PJContext *pj)
+static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 {
     int i;
     RenderLayer *layer;
 
-    /* PJDebug(pj, ("PJContext_ReloadAndRebuildShadersIfNeed\r\n")); */
-    for (i = 0; (layer = Graphics_GetRenderLayer(pj->graphics, i)) != NULL; i++) {
+    for (i = 0; (layer = Graphics_GetRenderLayer(gx->graphics, i)) != NULL; i++) {
         time_t t;
         SourceObject *so;
         so = RenderLayer_GetAux(layer);
@@ -497,27 +493,27 @@ static int PJContext_ReloadAndRebuildShadersIfNeed(PJContext *pj)
                 len = fread(code, 1, sizeof(code), fp);
                 /* TODO: handle errno */
                 if (ferror(fp) != 0) {
-                    PJDebug(pj, ("ferror = %d\r\n", ferror(fp)));
+                    GXDebug(gx, ("ferror = %d\r\n", ferror(fp)));
                 }
                 if (errno != 0) {
-                    PJDebug(pj, ("errno = %d\r\n", errno));
+                    GXDebug(gx, ("errno = %d\r\n", errno));
                 }
-                PJDebug(pj, ("update: %s\r\n", so->path));
+                GXDebug(gx, ("update: %s\r\n", so->path));
                 RenderLayer_UpdateShaderSource(layer, code, (int)len);
                 so->last_modify_time = t;
-                Graphics_BuildRenderLayer(pj->graphics, i);
+                Graphics_BuildRenderLayer(gx->graphics, i);
             }
         }
     }
     return 0;
 }
 
-static void PJContext_UpdateMousePosition(PJContext *pj)
+static void Glslr_UpdateMousePosition(Glslr *gx)
 {
     int i;
     const int max_zap_event = 16;
 
-    if (pj->mouse.fd < 0) {
+    if (gx->mouse.fd < 0) {
         return;
     }
 
@@ -526,7 +522,7 @@ static void PJContext_UpdateMousePosition(PJContext *pj)
         ssize_t len;
         int err;
         errno = 0;
-	len = read(pj->mouse.fd, &ev, sizeof(ev));
+	len = read(gx->mouse.fd, &ev, sizeof(ev));
 	err = errno;
         errno = 0;
 	if (len != sizeof(ev)) {
@@ -545,10 +541,10 @@ static void PJContext_UpdateMousePosition(PJContext *pj)
         if (ev.type == EV_REL) { /* relative-move event */
             switch (ev.code) {
             case REL_X:
-                pj->mouse.x += (int)ev.value;
+                gx->mouse.x += (int)ev.value;
                 break;
             case REL_Y:
-                pj->mouse.y += -(int)ev.value;
+                gx->mouse.y += -(int)ev.value;
                 break;
             default:
                 break;
@@ -559,58 +555,58 @@ static void PJContext_UpdateMousePosition(PJContext *pj)
     {
         int width, height;
         /* fix mouse position */
-        Graphics_GetWindowSize(pj->graphics, &width, &height);
-	pj->mouse.x = CLAMP(0, pj->mouse.x, width);
-        pj->mouse.y = CLAMP(0, pj->mouse.y, height);
+        Graphics_GetWindowSize(gx->graphics, &width, &height);
+		gx->mouse.x = CLAMP(0, gx->mouse.x, width);
+        gx->mouse.y = CLAMP(0, gx->mouse.y, height);
     }
 }
 
-static void PJContext_SetUniforms(PJContext *pj)
+static void Glslr_SetUniforms(Glslr *gx)
 {
     double t;
     double mouse_x, mouse_y;
     int width, height;
-    t = GetCurrentTimeInMilliSecond() - pj->time_origin;
-    Graphics_GetWindowSize(pj->graphics, &width, &height);
-    mouse_x = (double)pj->mouse.x / width;
-    mouse_y = (double)pj->mouse.y / height;
+    t = GetCurrentTimeInMilliSecond() - gx->time_origin;
+    Graphics_GetWindowSize(gx->graphics, &width, &height);
+    mouse_x = (double)gx->mouse.x / width;
+    mouse_y = (double)gx->mouse.y / height;
 
-    Graphics_SetUniforms(pj->graphics, t / 1000.0, 
-						 pj->net_input_val,
+    Graphics_SetUniforms(gx->graphics, t / 1000.0, 
+						 gx->net_input_val,
                          mouse_x, mouse_y, drand48(), drand48());
 }
 
-static void PJContext_Render(PJContext *pj)
+static void Glslr_Render(Glslr *gx)
 {
-    if (pj->verbose.render_time) {
+    if (gx->verbose.render_time) {
         double t, ms;
         t = GetCurrentTimeInMilliSecond();
-        Graphics_Render(pj->graphics);
+        Graphics_Render(gx->graphics);
         ms = GetCurrentTimeInMilliSecond() - t;
         printf("render time: %.1f ms (%.0f fps)    \r", ms, 1000.0 / ms);
     } else {
-        Graphics_Render(pj->graphics);
+        Graphics_Render(gx->graphics);
     }
 }
 
-static void PJContext_AdvanceFrame(PJContext *pj)
+static void Glslr_AdvanceFrame(Glslr *gx)
 {
-    pj->frame += 1;
+    gx->frame += 1;
 }
 
-static int PJContext_Update(PJContext *pj)
+static int Glslr_Update(Glslr *gx)
 {
 	glfwPollEvents();
-    if (PJContext_ReloadAndRebuildShadersIfNeed(pj)) {
+    if (Glslr_ReloadAndRebuildShadersIfNeed(gx)) {
         return 1;
     }
-    if (pj->use_net) {
-        dopoll(pj);
+    if (gx->use_net) {
+        dopoll(gx);
     }
-    /*PJContext_UpdateMousePosition(pj);*/
-    PJContext_SetUniforms(pj);
-    PJContext_Render(pj);
-    PJContext_AdvanceFrame(pj);
+    /*Glslr_UpdateMousePosition(gx);*/
+    Glslr_SetUniforms(gx);
+    Glslr_Render(gx);
+    Glslr_AdvanceFrame(gx);
     return 0;
 }
 
@@ -618,25 +614,25 @@ static void PrintHelp(void)
 {
     printf("Key:\r\n");
     printf("  t        FPS printing\r\n");
-    printf("  [ or ]   offscreen scaling\r\n");
+    printf("  [ or ]   offscreen scaling (defunct)\r\n");
     printf("  b        backbuffer ON/OFF\r\n");
     printf("  q        exit\r\n");
 }
 
 #if 0
-static int PJContext_HandleKeyboadEvent(PJContext *pj)
+static int Glslr_HandleKeyboadEvent(Glslr *gx)
 {
     /* TODO */
     return 0;
 }
 #endif
 
-static int PJContext_PrepareMainLoop(PJContext *pj)
+static int Glslr_PrepareMainLoop(Glslr *gx)
 {
-    return Graphics_AllocateOffscreen(pj->graphics);    
+    return Graphics_AllocateOffscreen(gx->graphics);    
 }
 
-static void PJContext_MainLoop(PJContext *pj)
+static void Glslr_MainLoop(Glslr *gx)
 {
     for (;;) {
         switch (getchar()) {
@@ -650,26 +646,28 @@ static void PJContext_MainLoop(PJContext *pj)
             printf("\r\nexit\r\n");
             goto goal;
         case ']':
-            PJContext_ChangeScaling(pj, 1);
+			// defunct
+            //Glslr_ChangeScaling(gx, 1);
             break;
         case '[':
-            PJContext_ChangeScaling(pj, -1);
+			// defunct
+            //Glslr_ChangeScaling(gx, -1);
             break;
         case 't':
         case 'T':
-            pj->verbose.render_time ^= 1;
+            gx->verbose.render_time ^= 1;
             printf("\r\n");
             break;
         case 'b':
-            PJContext_SwitchBackbuffer(pj);
-            printf("backbuffer %s\r\n", pj->use_backbuffer ? "ON": "OFF");
+            Glslr_SwitchBackbuffer(gx);
+            printf("backbuffer %s\r\n", gx->use_backbuffer ? "ON": "OFF");
             break;
         case '?':
             PrintHelp();
         default:
             break;
         }
-        if (PJContext_Update(pj)) {
+        if (Glslr_Update(gx)) {
             break;
         }
     }
@@ -677,13 +675,13 @@ static void PJContext_MainLoop(PJContext *pj)
     return;
 }
 
-static int PJContext_AppendLayer(PJContext *pj, const char *path)
+static int Glslr_AppendLayer(Glslr *gx, const char *path)
 {
     SourceObject *so;
     FILE *fp;
     char code[MAX_SOURCE_BUF];
     size_t len;
-    PJDebug(pj, ("PJContext_AppendLayer: %s\r\n", path));
+    GXDebug(gx, ("Glslr_AppendLayer: %s\r\n", path));
     fp = fopen(path, "r");
     if (fp == NULL) {
         fprintf(stderr, "file open failed: %s\r\n", path);
@@ -692,22 +690,22 @@ static int PJContext_AppendLayer(PJContext *pj, const char *path)
     len = fread(code, 1, sizeof(code), fp);
     fclose(fp);
     so = SourceObject_Create(path);
-    Graphics_AppendRenderLayer(pj->graphics, code, (int)len, (void *)so);
+    Graphics_AppendRenderLayer(gx->graphics, code, (int)len, (void *)so);
     return 0;
 }
 
-int PJContext_ParseArgs(PJContext *pj, int argc, const char *argv[])
+int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 {
     int i;
     int layer;
     Graphics *g;
 
-    g = pj->graphics;
+    g = gx->graphics;
     layer = 0;
     for (i = 1; i < argc; i++) {
         const char *arg = argv[i];
         if (strcmp(arg, "--debug") == 0) {
-            pj->verbose.debug = 1;
+            gx->verbose.debug = 1;
         } else if (strcmp(arg, "--RGB888") == 0) {
             Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGB888);
         } else if (strcmp(arg, "--RGBA8888") == 0) {
@@ -727,66 +725,65 @@ int PJContext_ParseArgs(PJContext *pj, int argc, const char *argv[])
         } else if (strcmp(arg, "--wrap-mirror_repeat") == 0) {
             Graphics_SetOffscreenWrapMode(g, Graphics_WRAP_MODE_MIRRORED_REPEAT);
         } else if (strcmp(arg, "--backbuffer") == 0) {
-            pj->use_backbuffer = 1;
+            gx->use_backbuffer = 1;
         } else if (strcmp(arg, "--net") == 0) {
-	    pj->use_net = 1;
+			gx->use_net = 1;
         } else if (strcmp(arg, "--tcp") == 0) {
-            pj->use_tcp = 1;
+            gx->use_tcp = 1;
         } else if (strcmp(arg, "--port") == 0) {
-            pj->port = strtol(argv[i+1], NULL, 10);
+            gx->port = strtol(argv[i+1], NULL, 10);
             i++;
-	// how much parameters to have
+		// how many parameters to have
         } else if (strcmp(arg, "--params") == 0) {
-            pj->net_params=atoi(argv[i+1]);
+            gx->net_params=atoi(argv[i+1]);
 	    i++;
         } else {
             printf("layer %d: %s\r\n", layer, arg);
-            PJContext_AppendLayer(pj, arg);
+            Glslr_AppendLayer(gx, arg);
             layer += 1;
         }
     }
-    Graphics_SetBackbuffer(g, pj->use_backbuffer);
+    Graphics_SetBackbuffer(g, gx->use_backbuffer);
    
     // create net_input_val linked list
     netin_val *curr=NULL;
     netin_val *next=NULL; 
     i = 0;
-    while (i < pj->net_params) {
+    while (i < gx->net_params) {
         curr=malloc(sizeof(netin_val));
         curr->next = next;
 	curr->val = 0;
         next = curr;
 	i++;
     }
-    pj->net_input_val = next;
-    Graphics_SetNetParams(g, pj->net_params);
-    Graphics_ApplyOffscreenChange(pj->graphics);
-    if (pj->use_net) {
-     	PJContext_Listen(pj->use_tcp, pj->port);
+    gx->net_input_val = next;
+    Graphics_SetNetParams(g, gx->net_params);
+    Graphics_ApplyOffscreenChange(gx->graphics);
+    if (gx->use_net) {
+     	Glslr_Listen(gx->use_tcp, gx->port);
     }
     return (layer == 0) ? 1 : 0;
 }
 
-int PJContext_HostInitialize(void)
+int Glslr_HostInitialize(void)
 {
     Graphics_HostInitialize();
     return 0;
 }
 
-void PJContext_HostDeinitialize(void)
+void Glslr_HostDeinitialize(void)
 {
     Graphics_HostDeinitialize();
 }
 
-size_t PJContext_InstanceSize(void)
+size_t Glslr_InstanceSize(void)
 {
-    return sizeof(PJContext);
+    return sizeof(Glslr);
 }
 
-int PJContext_Main(PJContext *pj)
+int Glslr_Main(Glslr *gx)
 {
-    PJContext_PrepareMainLoop(pj);
-    PJContext_MainLoop(pj);
+    Glslr_PrepareMainLoop(gx);
+    Glslr_MainLoop(gx);
     return EXIT_SUCCESS;
 }
-

@@ -3,7 +3,6 @@
 #ifndef INCLUDED_BASE_H
 #define INCLUDED_BASE_H
 
-
 /* semantics */
 #define OPTIONAL
 

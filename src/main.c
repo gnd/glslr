@@ -1,5 +1,3 @@
-/* -*- Mode: c; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*- */
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -64,7 +62,7 @@ int main(int argc, char *argv[])
     fcntl(0, F_SETFL, O_NONBLOCK);
 #endif
 
-    PJContext_HostInitialize();
+    Glslr_HostInitialize();
 
     PrintHead();
     ret = EXIT_SUCCESS;
@@ -72,21 +70,20 @@ int main(int argc, char *argv[])
     if (argc == 1) {
         PrintCommandUsage();
     } else {
-        PJContext *pj;
-        pj = malloc(PJContext_InstanceSize());
-        PJContext_Construct(pj);
-        if (PJContext_ParseArgs(pj, argc, (const char **)argv) == 0) {
-            ret = PJContext_Main(pj);
+        Glslr *gx;
+        gx = malloc(Glslr_InstanceSize());
+        Glslr_Construct(gx);
+        if (Glslr_ParseArgs(gx, argc, (const char **)argv) == 0) {
+            ret = Glslr_Main(gx);
         }
-        PJContext_Destruct(pj);
-        free(pj);
+        Glslr_Destruct(gx);
+        free(gx);
     }
 
-    PJContext_HostDeinitialize();
+    Glslr_HostDeinitialize();
 
 #ifdef USE_TERMIOS
     tcsetattr(STDIN_FILENO, 0, &ios_old);
 #endif
     return ret;
 }
-
