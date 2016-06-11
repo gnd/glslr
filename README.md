@@ -5,6 +5,16 @@
 
 **glslr** is able to receive control data through a network socket which is then fed to the shader in the form of uniform variables.
 
+##Installation:
+
+On Ubuntu its enough to install libgles2-mesa-dev:
+```
+apt-get install git libgles2-mesa-dev
+git clone https://github.com/k-o-l-e-k-t-i-v/glslr
+cd glslr
+make
+```
+
 ##Usage:
 ```
 glslr example.glsl
