@@ -489,7 +489,6 @@ void Graphics_Delete(Graphics *g)
 	CHECK_GL();
 
 	glfwTerminate();
-	free(g->window);
 	free(g);
 }
 
