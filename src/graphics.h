@@ -37,14 +37,14 @@ typedef enum {
 
 // net_input values
 typedef struct linked_val {
-    float val;
-    struct linked_val *next;
+	float val;
+	struct linked_val *next;
 } netin_val;
 
 // net_input addresses
 typedef struct linked_addr {
-    GLuint addr;
-    struct linked_addr *next;
+	GLuint addr;
+	struct linked_addr *next;
 } netin_addr;
 
 
@@ -85,7 +85,7 @@ RenderLayer *Graphics_GetRenderLayer(Graphics *g, int layer_index);
 int Graphics_BuildRenderLayer(Graphics *g, int layer_index);
 
 void Graphics_SetUniforms(Graphics *g, double t,
-			  netin_val *net_input_val,
+                          netin_val *net_input_val,
                           double mouse_x, double mouse_y,
                           double randx, double randy);
 void Graphics_Render(Graphics *g);

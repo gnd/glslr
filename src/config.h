@@ -1,5 +1,3 @@
-/* -*- Mode: c; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*- */
-
 #ifndef INCLUDED_CONFIG_H
 #define INCLUDED_CONFIG_H
 
