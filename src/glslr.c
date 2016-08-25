@@ -337,7 +337,7 @@ int Glslr_Construct(Glslr *gx)
 	int scaling_numer, scaling_denom;
 	scaling_numer = 1;
 	scaling_denom = 2;
-	gx->graphics = Graphics_Create(Graphics_LAYOUT_SECONDARY_FULLSCREEN,
+	gx->graphics = Graphics_Create(Graphics_LAYOUT_PRIMARY_RESOLUTION,
 	                               scaling_numer, scaling_denom);
 	if (!gx->graphics) {
 		fprintf(stderr, "Graphics Initialize failed:\r\n");
