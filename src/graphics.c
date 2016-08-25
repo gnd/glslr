@@ -398,48 +398,24 @@ static int Graphics_SetupInitialState(Graphics *g);
 
 Graphics *Graphics_Create(Graphics_LAYOUT layout,
                           int scaling_numer, int scaling_denom)
-{
-	Graphics *g;
+{ 
+ 	Graphics *g;
 	int width, height;
 	int scaled_width, scaled_height;
+    int secondary_xpos, secondary_ypos;
 	Scaling sc;
 
 	g = malloc(sizeof(*g));
 	if (!g) {
 		handleError("Graphics not created", -1);
 	}
-
+    
 	sc.numer = scaling_numer;
 	sc.denom = scaling_denom;
 
-
-
-	int count;
-	GLFWmonitor** monitors = glfwGetMonitors(&count);
-	printf("Count monitors: %i\r\n");
-	int i;
-	for (i = 0; i < count; i++) {
-		GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
-		printf("Monitor[%i]: %i x %i @ %i hz\r\n", i, mode->width, mode->height, mode->refreshRate);
-	}
-
-	if (count > 1) {
-		printf("Using secondary monitor in fullscreen mode\r\n");
-		GLFWvidmode* mode_primary = glfwGetVideoMode(monitors[0]);
-		GLFWvidmode* mode_secondary = glfwGetVideoMode(monitors[1]);
-		/* doesnt work, window is minimized as soon as it looses focus
-		g->window = glfwCreateWindow(600, 400, "test", NULL, NULL);
-		glfwSetWindowMonitor(g->window, monitors[1], 0, 0, mode_secondary->width, mode_secondary->height, mode_secondary->refreshRate);
-		*/
-		// workaround - works now only for monitors on the right side of primary monitor
-		glfwWindowHint(GLFW_DECORATED,GL_FALSE);
-		g->window = glfwCreateWindow(mode_secondary->width, mode_secondary->height, "glslr", NULL, NULL);
-		glfwSetWindowPos(g->window, mode_primary->width, 0);
-	} else {
-		printf("Using primary monitor\r\n");
-		g->window = glfwCreateWindow(800, 600, "glslr", NULL, NULL);
-	}
-
+    // Create default window
+	g->window = glfwCreateWindow(800, 600, "glslr", NULL, NULL);
+	
 	if(!g->window) {
 		glfwTerminate();
 		handleError("GLFW create window failed", -1);
@@ -447,9 +423,9 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 
 	g->viewport.x = 0;
 	g->viewport.y = 0;
-	g->viewport.z = 800;
-	g->viewport.w = 600;
-	g->layout = layout;
+    g->viewport.z = 800;
+    g->viewport.w = 600;
+	g->layout = Graphics_LAYOUT_PRIMARY_RESOLUTION;
 	g->array_buffer_fullscene_quad = 0;
 	g->vertex_shader = 0;
 	g->texture_wrap_mode = Graphics_WRAP_MODE_REPEAT;
@@ -538,15 +514,70 @@ static int Graphics_SetupInitialState(Graphics *g)
 	glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 	glDisable(GL_SAMPLE_COVERAGE);
 
-/*
-	{
-		int width, height;
-		//Graphics_GetWindowSize(g, &width, &height);
-		Graphics_getWindowWidth(g, &width);
-		Graphics_getWindowHeight(g, &height);
-		glViewport(0, 0, width, height);
+	return 0;
+}
+
+void Graphics_SetupViewport(Graphics *g) {
+    
+    printf("Entering viewport setup");  
+    int i, count, width, height, secondary_xpos, secondary_ypos;
+	
+    GLFWmonitor** monitors = glfwGetMonitors(&count);
+	for (i = 0; i < count; i++) {
+		GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+		printf("Monitor[%i]: %i x %i @ %i hz\r\n", i, mode->width, mode->height, mode->refreshRate);
 	}
-*/	return 0;
+        
+    switch (g->layout) {
+         case Graphics_LAYOUT_PRIMARY_RESOLUTION: /* default */
+            printf("Using primary monitor\r\n");
+            width = g->viewport.z;
+            height = g->viewport.w;
+            glfwSetWindowSize(g->window, width, height);
+            glfwSetWindowPos(g->window, 0, 0);
+        break;
+        case Graphics_LAYOUT_PRIMARY_FULLSCREEN:
+            printf("Using primary monitor in fullscreen mode\r\n");
+            GLFWvidmode* mode_primary = glfwGetVideoMode(monitors[0]);
+            width = mode_primary->width;
+            height = mode_primary->height;
+            g->viewport.z = width;
+            g->viewport.w = height;
+            glfwSetWindowSize(g->window, width, height);
+            glfwSetWindowPos(g->window, 0, 0);
+        break;
+        case Graphics_LAYOUT_SECONDARY_FULLSCREEN:
+            if (count > 1) {
+                printf("Using secondary monitor in fullscreen mode\r\n");
+                glfwGetMonitorPos(monitors[1], &secondary_xpos, &secondary_ypos);
+                printf("Placing render window at monitor[1] position: %d x %d \r\n", secondary_xpos, secondary_ypos);
+                GLFWvidmode* mode_secondary = glfwGetVideoMode(monitors[1]);
+                width = mode_secondary->width;
+                height = mode_secondary->height;
+                g->viewport.z = width;
+                g->viewport.w = height;
+                glfwSetWindowSize(g->window, width, height);
+                glfwSetWindowPos(g->window, secondary_xpos, secondary_ypos);
+            } else {
+                printf("Cant detect any secondary monitors");
+                exit(0);
+            }
+        break;
+        case Graphics_LAYOUT_SECONDARY_RESOLUTION:
+            if (count > 1) {
+                printf("Using secondary monitor\r\n");
+                glfwGetMonitorPos(monitors[1], &secondary_xpos, &secondary_ypos);
+                printf("Placing render window at monitor[1] position: %d x %d \r\n", secondary_xpos, secondary_ypos);
+                width = g->viewport.z;
+                height = g->viewport.w;
+                glfwSetWindowSize(g->window, width, height);
+                glfwSetWindowPos(g->window, secondary_xpos, secondary_ypos);
+            } else {
+                printf("Cant detect any secondary monitors");
+                exit(0);
+            }
+        break;
+    }
 }
 
 static int Graphics_ApplyWindowChange(Graphics *g)
@@ -582,6 +613,13 @@ damn:
 void Graphics_setWindowSize(int _width, int _height)
 {
 	glViewport(0.0,0.0,(float)_width,(float)_height);
+}
+
+void Graphics_SetupWindowSize(Graphics *g, int _width, int _height) // just for testing
+{
+    g->viewport.z = _width;
+    g->viewport.w = _height;
+    glfwSetWindowSize(g->window, _width, _height);
 }
 
 void Graphics_setSourceSize(int _width, int _height)
@@ -641,6 +679,13 @@ int Graphics_ApplyOffscreenChange(Graphics *g)
 {
 	Graphics_DeallocateOffscreen(g);
 	return Graphics_AllocateOffscreen(g);
+}
+
+void Graphics_SetLayout(Graphics *g, Graphics_LAYOUT layout, int width, int height)
+{
+    g->layout = layout;
+    g->viewport.z = width;
+    g->viewport.w = height;
 }
 
 void Graphics_SetWindowScaling(Graphics *g, int numer, int denom)

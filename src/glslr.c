@@ -17,8 +17,10 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+
 #include <fcntl.h>
 #include <termios.h>
+
 
 #include "config.h"
 #include "base.h"
@@ -41,6 +43,7 @@
 #define MAX(a, b) (((a) >= (b)) ? (a) : (b))
 #define MIN(a, b) (((a) <  (b)) ? (a) : (b))
 #define CLAMP(min, x, max) MIN(MAX(min, x), max)
+
 
 typedef struct {
 	const char *path;
@@ -334,7 +337,7 @@ int Glslr_Construct(Glslr *gx)
 	int scaling_numer, scaling_denom;
 	scaling_numer = 1;
 	scaling_denom = 2;
-	gx->graphics = Graphics_Create(Graphics_LAYOUT_FULLSCREEN,
+	gx->graphics = Graphics_Create(Graphics_LAYOUT_SECONDARY_FULLSCREEN,
 	                               scaling_numer, scaling_denom);
 	if (!gx->graphics) {
 		fprintf(stderr, "Graphics Initialize failed:\r\n");
@@ -604,6 +607,37 @@ static void PrintHelp(void)
 	printf("  q        exit\r\n");
 }
 
+void Glslr_Usage(void)
+{
+	printf("usage: glslr [options] <layer0.glsl> [layer1.glsl] [layer2.glsl] ...\r\n");
+	printf("options:\r\n");
+    printf("  window properties:\r\n");
+    printf("    --primary-fs                            create a fullscreen window on primary monitor\r\n");
+	printf("    --primary-res [WidthxHeight]            create a width x height window on primary monitor (default: 800x600)\r\n");
+    printf("    --secondary-fs                          create a fullscreen window on secondary monitor\r\n");
+	printf("    --secondary-res [WidthxHeight]          create a width x height window on secondary monitor\r\n");
+	printf("  offscreen format:\r\n");
+	printf("    --RGB888\r\n");
+	printf("    --RGBA8888 (default)\r\n");
+	printf("    --RGB565\r\n");
+	printf("    --RGBA4444\r\n");
+	printf("  interpolation mode:\r\n");
+	printf("    --nearestneighbor (default)\r\n");
+	printf("    --bilinear\r\n");
+	printf("  wrap mode:\r\n");
+	printf("    --wrap-clamp_to_edge\r\n");
+	printf("    --wrap-repeat (default)\r\n");
+	printf("    --wrap-mirror_repeat\r\n");
+	printf("  backbuffer:\r\n");
+	printf("    --backbuffer                            enable backbuffer (default:OFF)\r\n");
+	printf("  network:\r\n");
+	printf("    --net                                   enable network (default:OFF)\r\n");
+	printf("    --tcp                                   enable TCP (default:UDP)\r\n");
+	printf("    --port [port]                           listen on port (default:6666)\r\n");
+	printf("    --params [n]                            number of net input params (default:0)\r\n");
+	printf("\r\n");
+}
+
 #if 0
 static int Glslr_HandleKeyboadEvent(Glslr *gx)
 {
@@ -683,50 +717,99 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 {
 	int i;
 	int layer;
+    int width, height;
 	Graphics *g;
 
 	g = gx->graphics;
-	layer = 0;
+    layer = 0;
+      
 	for (i = 1; i < argc; i++) {
-		const char *arg = argv[i];
-		if (strcmp(arg, "--debug") == 0) {
+		if (!strcmp(argv[i], "--debug")) {
 			gx->verbose.debug = 1;
-		} else if (strcmp(arg, "--RGB888") == 0) {
+            continue;
+        }
+        if (!strcmp(argv[i], "--primary-fs")) {
+            Graphics_SetLayout(g, Graphics_LAYOUT_PRIMARY_FULLSCREEN, 0, 0);
+            continue;
+        }
+        if (!strcmp(argv[i], "--primary-res")) {
+            if (++i>=argc) Glslr_Usage();
+            if (sscanf(argv[i], "%dx%d", &width, &height) < 2) Glslr_Usage();
+            Graphics_SetLayout(g, Graphics_LAYOUT_PRIMARY_RESOLUTION, width, height);
+            continue;
+		} 
+        if (!strcmp(argv[i], "--secondary-fs")) {
+            Graphics_SetLayout(g, Graphics_LAYOUT_SECONDARY_FULLSCREEN, 0, 0);
+            continue;
+        }
+        if (!strcmp(argv[i], "--secondary-res")) {
+            if (++i>=argc) Glslr_Usage();
+            if (sscanf(argv[i], "%dx%d", &width, &height) < 2) Glslr_Usage();
+            Graphics_SetLayout(g, Graphics_LAYOUT_SECONDARY_RESOLUTION, width, height); 
+            continue;
+        } 
+        if (!strcmp(argv[i], "--RGB888")) {
 			Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGB888);
-		} else if (strcmp(arg, "--RGBA8888") == 0) {
+            continue;
+		} 
+        if (!strcmp(argv[i], "--RGBA8888")) {
 			Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGBA8888);
-		} else if (strcmp(arg, "--RGB565") == 0) {
+            continue;
+		} 
+        if (!strcmp(argv[i], "--RGB565")) {
 			Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGB565);
-		} else if (strcmp(arg, "--RGBA4444") == 0) {
-			Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGBA4444);
-		} else if (strcmp(arg, "--nearestneighbor") == 0) {
-			Graphics_SetOffscreenInterpolationMode(g, Graphics_INTERPOLATION_MODE_NEARESTNEIGHBOR);
-		} else if (strcmp(arg, "--bilinear") == 0) {
-			Graphics_SetOffscreenInterpolationMode(g, Graphics_INTERPOLATION_MODE_BILINEAR);
-		} else if (strcmp(arg, "--wrap-clamp_to_edge") == 0) {
-			Graphics_SetOffscreenWrapMode(g, Graphics_WRAP_MODE_CLAMP_TO_EDGE);
-		} else if (strcmp(arg, "--wrap-repeat") == 0) {
-			Graphics_SetOffscreenWrapMode(g, Graphics_WRAP_MODE_REPEAT);
-		} else if (strcmp(arg, "--wrap-mirror_repeat") == 0) {
-			Graphics_SetOffscreenWrapMode(g, Graphics_WRAP_MODE_MIRRORED_REPEAT);
-		} else if (strcmp(arg, "--backbuffer") == 0) {
-			gx->use_backbuffer = 1;
-		} else if (strcmp(arg, "--net") == 0) {
-			gx->use_net = 1;
-		} else if (strcmp(arg, "--tcp") == 0) {
-			gx->use_tcp = 1;
-		} else if (strcmp(arg, "--port") == 0) {
-			gx->port = strtol(argv[i+1], NULL, 10);
-			i++;
-			// how many parameters to have
-		} else if (strcmp(arg, "--params") == 0) {
-			gx->net_params=atoi(argv[i+1]);
-			i++;
-		} else {
-			printf("layer %d: %s\r\n", layer, arg);
-			Glslr_AppendLayer(gx, arg);
-			layer += 1;
+            continue;
 		}
+        if (!strcmp(argv[i], "--RGBA4444")) {
+			Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGBA4444);
+            continue;
+		}
+        if (!strcmp(argv[i], "--nearestneighbor")) {
+			Graphics_SetOffscreenInterpolationMode(g, Graphics_INTERPOLATION_MODE_NEARESTNEIGHBOR);
+            continue;
+		}
+        if (!strcmp(argv[i], "--bilinear")) {
+			Graphics_SetOffscreenInterpolationMode(g, Graphics_INTERPOLATION_MODE_BILINEAR);
+            continue;
+		}
+        if (!strcmp(argv[i], "--wrap-clamp_to_edge")) {
+			Graphics_SetOffscreenWrapMode(g, Graphics_WRAP_MODE_CLAMP_TO_EDGE);
+            continue;
+		}
+        if (!strcmp(argv[i], "--wrap-repeat")) {
+			Graphics_SetOffscreenWrapMode(g, Graphics_WRAP_MODE_REPEAT);
+            continue;
+		}
+        if (!strcmp(argv[i], "--wrap-mirror_repeat")) {
+			Graphics_SetOffscreenWrapMode(g, Graphics_WRAP_MODE_MIRRORED_REPEAT);
+            continue;
+		}
+        if (!strcmp(argv[i], "--backbuffer")) {
+			gx->use_backbuffer = 1;
+            continue;
+		}
+        if (!strcmp(argv[i], "--net")) {
+			gx->use_net = 1;
+            continue;
+		}
+        if (!strcmp(argv[i], "--tcp")) {
+			gx->use_tcp = 1;
+            continue;
+		}
+        if (!strcmp(argv[i], "--port")) {   
+            if (++i>=argc) Glslr_Usage();
+			gx->port = strtol(argv[i], NULL, 10); /* handle error gnd */
+            continue;
+		}
+        if (!strcmp(argv[i], "--params")) {
+            if (++i>=argc) Glslr_Usage();
+			gx->net_params=atoi(argv[i]); /* handle error gnd */
+            continue;
+		} 
+        // the rest is layers 
+        printf("layer %d: %s\r\n", layer, argv[i]);
+		Glslr_AppendLayer(gx, argv[i]);
+		layer += 1;
 	}
 	Graphics_SetBackbuffer(g, gx->use_backbuffer);
 
@@ -743,7 +826,8 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	}
 	gx->net_input_val = next;
 	Graphics_SetNetParams(g, gx->net_params);
-	Graphics_ApplyOffscreenChange(gx->graphics);
+	Graphics_ApplyOffscreenChange(gx->graphics);    
+    Graphics_SetupViewport(gx->graphics);
 	if (gx->use_net) {
 		Glslr_Listen(gx->use_tcp, gx->port);
 	}

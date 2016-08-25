@@ -22,31 +22,6 @@ static void PrintHead(void)
 	printf("build %s\r\n", __DATE__);
 }
 
-static void PrintCommandUsage(void)
-{
-	printf("usage: glslr [options] <layer0.glsl> [layer1.glsl] [layer2.glsl] ...\r\n");
-	printf("options:\r\n");
-	printf("  offscreen format:\r\n");
-	printf("    --RGB888\r\n");
-	printf("    --RGBA8888 (default)\r\n");
-	printf("    --RGB565\r\n");
-	printf("    --RGBA4444\r\n");
-	printf("  interpolation mode:\r\n");
-	printf("    --nearestneighbor (default)\r\n");
-	printf("    --bilinear\r\n");
-	printf("  wrap mode:\r\n");
-	printf("    --wrap-clamp_to_edge\r\n");
-	printf("    --wrap-repeat (default)\r\n");
-	printf("    --wrap-mirror_repeat\r\n");
-	printf("  backbuffer:\r\n");
-	printf("    --backbuffer   enable backbuffer (default:OFF)\r\n");
-	printf("  network:\r\n");
-	printf("    --net	enable network (default:OFF)\r\n");
-	printf("    --tcp	enable TCP (default:UDP)\r\n");
-	printf("    --port	listen on port (default:6666)\r\n");
-	printf("    --params	number of net input params (default:0)\r\n");
-	printf("\r\n");
-}
 
 int main(int argc, char *argv[])
 {
@@ -63,12 +38,10 @@ int main(int argc, char *argv[])
 #endif
 
 	Glslr_HostInitialize();
-
 	PrintHead();
 	ret = EXIT_SUCCESS;
-
 	if (argc == 1) {
-		PrintCommandUsage();
+		Glslr_Usage();
 	} else {
 		Glslr *gx;
 		gx = malloc(Glslr_InstanceSize());

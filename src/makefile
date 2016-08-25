@@ -14,7 +14,7 @@ endif
 CFLAGS += -DPLATFORM_LINUX $(shell pkg-config --cflags glfw3 glu gl) 
 
 LIBS+=-lGLESv2
-LIBS+=-lglfw3
+LIBS+=-lglfw
 #LIBS+=-lglu
 LIBS+=-lGL
 LIBS+=-lX11

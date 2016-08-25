@@ -8,7 +8,10 @@
 #include <GLFW/glfw3.h>
 
 typedef enum {
-    Graphics_LAYOUT_FULLSCREEN,
+    Graphics_LAYOUT_PRIMARY_FULLSCREEN,
+    Graphics_LAYOUT_PRIMARY_RESOLUTION,
+    Graphics_LAYOUT_SECONDARY_RESOLUTION,
+    Graphics_LAYOUT_SECONDARY_FULLSCREEN,
     Graphics_LAYOUT_ENUMS
 } Graphics_LAYOUT;
 
@@ -78,6 +81,8 @@ int Graphics_ApplyOffscreenChange(Graphics *g);
 
 void Graphics_SetWindowScaling(Graphics *g, int numer, int denom);
 int Graphics_ApplyWindowScalingChange(Graphics *g);
+
+void Graphics_SetupViewport(Graphics *g);
 
 int Graphics_AllocateOffscreen(Graphics *g);
 void Graphics_DeallocateOffscreen(Graphics *g);
