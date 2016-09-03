@@ -46,8 +46,9 @@
 
 
 typedef struct {
-	const char *path;
-	time_t last_modify_time;
+	//const char *path;
+    char path[32];
+    time_t last_modify_time;
 } SourceObject;
 
 
@@ -317,12 +318,16 @@ static int GetLastFileModifyTime(const char *file_path, time_t *out_mod_time)
 }
 
 /* SourceObject */
-static SourceObject *SourceObject_Create(const char *path)
+static SourceObject *SourceObject_Create( char *path)
 {
 	SourceObject *so;
 	so = malloc(sizeof(*so));
-	so->path = path;
-	so->last_modify_time = 0;
+	//so->path = path;
+	//strcpy(path, so->path);
+    for (int i = 0; i < 32; i++) {
+        so->path[i] = path[i];
+    }
+    so->last_modify_time = 0;
 	return so;
 }
 
@@ -350,6 +355,7 @@ int Glslr_Construct(Glslr *gx)
 	gx->use_net = 0;
 	gx->port = 6666;
 	gx->mouse.x = 0;
+	gx->mouse.y = 0;
 	gx->mouse.y = 0;
 	gx->mouse.fd = open(MOUSE_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 	gx->net_input_val = NULL;
@@ -465,14 +471,14 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 		SourceObject *so;
 		so = RenderLayer_GetAux(layer);
 		if (GetLastFileModifyTime(so->path, &t)) {
-			fprintf(stderr, "file open failed: %s\r\n", so->path);
+			fprintf(stderr, "[1] file open failed: %s\r\n", so->path);
 			continue;
 		}
 		if (so->last_modify_time != t) {
 			FILE *fp;
 			fp = fopen(so->path, "r");
 			if (fp == NULL) {
-				fprintf(stderr, "file open failed: %s\r\n", so->path);
+				fprintf(stderr, "[2] file open failed: %s\r\n", so->path);
 			} else {
 				size_t len;
 				char code[MAX_SOURCE_BUF]; /* hmm.. */
