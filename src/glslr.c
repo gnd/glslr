@@ -718,6 +718,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	int i;
 	int layer;
     int width, height;
+    char layers[99][32];  /* hard limits meh */
 	Graphics *g;
 
 	g = gx->graphics;
@@ -808,11 +809,19 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 		} 
         // the rest is layers 
         printf("layer %d: %s\r\n", layer, argv[i]);
-		Glslr_AppendLayer(gx, argv[i]);
+        memset(layers[layer], '\0', sizeof(layers[layer]));
+        strcpy(layers[layer], argv[i]);
 		layer += 1;
 	}
-	Graphics_SetBackbuffer(g, gx->use_backbuffer);
-
+    Graphics_SetupViewport(gx->graphics); /* has to be done after args parsing but before appending layers */
+    Graphics_SetBackbuffer(g, gx->use_backbuffer);
+    
+    // add layers
+    for (i = 0; i < layer; i++) {
+        printf("Opening layer %d: %s\r\n", i, layers[i]);
+        Glslr_AppendLayer(gx, layers[i]);
+    }
+	
 	// create net_input_val linked list
 	netin_val *curr=NULL;
 	netin_val *next=NULL;
@@ -827,7 +836,6 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	gx->net_input_val = next;
 	Graphics_SetNetParams(g, gx->net_params);
 	Graphics_ApplyOffscreenChange(gx->graphics);    
-    Graphics_SetupViewport(gx->graphics);
 	if (gx->use_net) {
 		Glslr_Listen(gx->use_tcp, gx->port);
 	}
