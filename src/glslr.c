@@ -325,11 +325,6 @@ static SourceObject *SourceObject_Create(const char *path)
 	SourceObject *so;
 	so = malloc(sizeof(*so));
 	so->path = path;
-	//strcpy(path, so->path);
-    /*
-    for (int i = 0; i < 32; i++) {
-        so->path[i] = path[i];
-    }*/
     so->last_modify_time = 0;
 	return so;
 }
