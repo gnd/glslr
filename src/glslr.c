@@ -46,8 +46,8 @@
 
 
 typedef struct {
-	//const char *path;
-    char path[32];
+	const char *path;
+    //char path[32];
     time_t last_modify_time;
 } SourceObject;
 
@@ -311,22 +311,25 @@ static int GetLastFileModifyTime(const char *file_path, time_t *out_mod_time)
 {
 	struct stat sb;
 	if (stat(file_path, &sb) == -1) {
-		return 1;
+        int errsv = errno;
+        if (errsv == ENOENT ){ printf("ENOENT: %s\r\n", file_path); }
+       return 1;
 	}
 	*out_mod_time = sb.st_mtime;
 	return 0;
 }
 
 /* SourceObject */
-static SourceObject *SourceObject_Create( char *path)
+static SourceObject *SourceObject_Create(const char *path)
 {
 	SourceObject *so;
 	so = malloc(sizeof(*so));
-	//so->path = path;
+	so->path = path;
 	//strcpy(path, so->path);
+    /*
     for (int i = 0; i < 32; i++) {
         so->path[i] = path[i];
-    }
+    }*/
     so->last_modify_time = 0;
 	return so;
 }
@@ -440,7 +443,7 @@ static int Glslr_SwitchBackbuffer(Glslr *gx)
 	return Graphics_ApplyOffscreenChange(gx->graphics);
 }
 
-/* currently not working */
+/* currently not working 
 static int Glslr_ChangeScaling(Glslr *gx, int add)
 {
 	gx->scaling.denom += add;
@@ -459,7 +462,7 @@ static int Glslr_ChangeScaling(Glslr *gx, int add)
 		       width, height, gx->scaling.numer, gx->scaling.denom);
 	}
 	return 0;
-}
+} */
 
 static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 {
@@ -501,6 +504,7 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 	return 0;
 }
 
+/* currently unused 
 static void Glslr_UpdateMousePosition(Glslr *gx)
 {
 	int i;
@@ -519,19 +523,19 @@ static void Glslr_UpdateMousePosition(Glslr *gx)
 		err = errno;
 		errno = 0;
 		if (len != sizeof(ev)) {
-			/* no more data */
+			// no more data 
 			break;
 		}
 		if (err != 0) {
 			if (err == EWOULDBLOCK || err == EAGAIN) {
-				/* ok... try again next time */
+				// ok... try again next time
 				break;
 			} else {
 				printf("error on mouse-read: code %d(%s)\r\n", err, strerror(err));
 				return;
 			}
 		}
-		if (ev.type == EV_REL) { /* relative-move event */
+		if (ev.type == EV_REL) { // relative-move event 
 			switch (ev.code) {
 			case REL_X:
 				gx->mouse.x += (int)ev.value;
@@ -547,12 +551,13 @@ static void Glslr_UpdateMousePosition(Glslr *gx)
 
 	{
 		int width, height;
-		/* fix mouse position */
+		// fix mouse position
 		Graphics_GetWindowSize(gx->graphics, &width, &height);
 		gx->mouse.x = CLAMP(0, gx->mouse.x, width);
 		gx->mouse.y = CLAMP(0, gx->mouse.y, height);
 	}
 }
+*/
 
 static void Glslr_SetUniforms(Glslr *gx)
 {
@@ -819,6 +824,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
         strcpy(layers[layer], argv[i]);
 		layer += 1;
 	}
+    
     Graphics_SetupViewport(gx->graphics); /* has to be done after args parsing but before appending layers */
     Graphics_SetBackbuffer(g, gx->use_backbuffer);
     

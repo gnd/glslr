@@ -118,7 +118,6 @@ static void CheckGLError(const char *file, int line, const char *func)
 }
 #endif
 
-
 void handleError(const char *message, int _exitStatus)
 {
 	fprintf(stderr, message);
@@ -178,10 +177,11 @@ static void Scaling_Apply(Scaling *sc, int *inout_width, int *inout_height)
 	*inout_height = (*inout_height * sc->numer) / sc->denom;
 }
 
+/* unused
 static int Scaling_IsOne(Scaling *sc)
 {
 	return (sc->numer == sc->denom) ? 1 : 0;
-}
+} */
 
 
 /* RenderLayer */
@@ -400,9 +400,6 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
                           int scaling_numer, int scaling_denom)
 { 
  	Graphics *g;
-	int width, height;
-	int scaled_width, scaled_height;
-    int secondary_xpos, secondary_ypos;
 	Scaling sc;
 
 	g = malloc(sizeof(*g));
@@ -417,7 +414,7 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 	g->viewport.y = 0;
     g->viewport.z = 800;
     g->viewport.w = 600;
-	g->layout = Graphics_LAYOUT_PRIMARY_RESOLUTION;
+	g->layout = layout;
 	g->array_buffer_fullscene_quad = 0;
 	g->vertex_shader = 0;
 	g->texture_wrap_mode = Graphics_WRAP_MODE_REPEAT;
@@ -506,7 +503,7 @@ void Graphics_SetupViewport(Graphics *g) {
 	
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 	for (i = 0; i < count; i++) {
-		GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
+		const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
 		printf("Monitor[%i]: %i x %i @ %i hz\r\n", i, mode->width, mode->height, mode->refreshRate);
 	}
         
@@ -519,7 +516,7 @@ void Graphics_SetupViewport(Graphics *g) {
         break;
         case Graphics_LAYOUT_PRIMARY_FULLSCREEN:
             printf("Using primary monitor in fullscreen mode\r\n");
-            GLFWvidmode* mode_primary = glfwGetVideoMode(monitors[0]);
+            const GLFWvidmode* mode_primary = glfwGetVideoMode(monitors[0]);
             g->viewport.z = mode_primary->width;
             g->viewport.w = mode_primary->height;
             glfwWindowHint(GLFW_DECORATED,GL_FALSE);
@@ -529,7 +526,7 @@ void Graphics_SetupViewport(Graphics *g) {
                 printf("Using secondary monitor in fullscreen mode\r\n");
                 glfwGetMonitorPos(monitors[1], &xpos, &ypos);
                 printf("Placing render window at monitor[1] position: %d x %d \r\n", xpos, ypos);
-                GLFWvidmode* mode_secondary = glfwGetVideoMode(monitors[1]);
+                const GLFWvidmode* mode_secondary = glfwGetVideoMode(monitors[1]);
                 g->viewport.z = mode_secondary->width;
                 g->viewport.w = mode_secondary->height;
                 glfwWindowHint(GLFW_DECORATED,GL_FALSE);
@@ -575,12 +572,11 @@ static int Graphics_ApplyWindowChange(Graphics *g)
 	int scaled_width, scaled_height;
 
 	{
-		int x, y;
-		int screen_width, screen_height;
-		/* prevent warning */
-		screen_width = screen_height = 0;
+		//int x, y;
+		//int screen_width, screen_height;
+		//screen_width = screen_height = 0;
 		width = height = 0;
-		x = y = 0;
+		//x = y = 0;
 		// review this for a working scaling - compare to master
 		Graphics_GetWindowSize(g, &width, &height);
 		scaled_width = width;
@@ -595,8 +591,8 @@ static int Graphics_ApplyWindowChange(Graphics *g)
 	Graphics_DeallocateOffscreen(g);
 	Graphics_AllocateOffscreen(g);
 	return 0;
-damn:
-	return 1;
+//damn:
+	//return 1;
 }
 
 void Graphics_setWindowSize(int _width, int _height)
@@ -882,10 +878,7 @@ void Graphics_SetNetParams(Graphics *g, int params)
 
 void Graphics_GetWindowSize(Graphics *g, int *_width, int *_height)
 {
-	int width, height;
-	glfwGetWindowSize(g->window, &width, &height);
-	_width = width;
-	_height = height;
+	glfwGetWindowSize(g->window, _width, _height);
 }
 
 void Graphics_GetSourceSize(Graphics *g, int *width, int *height)
@@ -947,12 +940,12 @@ static void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format,
 	*out_type = type;
 }
 
-int Graphics_getWindowWidth(Graphics *g, int *width)
+void Graphics_getWindowWidth(Graphics *g, int *width)
 {
 	*width = g->viewport.z;
 }
 
-int Graphics_getWindowHeight(Graphics *g, int *height)
+void Graphics_getWindowHeight(Graphics *g, int *height)
 {
 	*height = g->viewport.w;
 }
