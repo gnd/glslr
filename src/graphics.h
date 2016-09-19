@@ -11,8 +11,7 @@ typedef enum {
     Graphics_LAYOUT_PRIMARY_FULLSCREEN,
     Graphics_LAYOUT_PRIMARY_RESOLUTION,
     Graphics_LAYOUT_SECONDARY_RESOLUTION,
-    Graphics_LAYOUT_SECONDARY_FULLSCREEN,
-    Graphics_LAYOUT_ENUMS
+    Graphics_LAYOUT_SECONDARY_FULLSCREEN
 } Graphics_LAYOUT;
 
 typedef enum {
@@ -83,6 +82,8 @@ void Graphics_SetWindowScaling(Graphics *g, int numer, int denom);
 int Graphics_ApplyWindowScalingChange(Graphics *g);
 
 void Graphics_SetupViewport(Graphics *g);
+void Graphics_SetLayout(Graphics *g, Graphics_LAYOUT layout, int width, int height);
+void Graphics_setWindowSize(int _width, int _height);
 
 int Graphics_AllocateOffscreen(Graphics *g);
 void Graphics_DeallocateOffscreen(Graphics *g);
@@ -101,6 +102,7 @@ Graphics_LAYOUT Graphics_GetCurrentLayout(Graphics *g);
 Graphics_LAYOUT Graphics_GetLayout(Graphics_LAYOUT layout, int forward);
 void Graphics_GetWindowSize(Graphics *g, int *out_width, int *out_height);
 void Graphics_GetSourceSize(Graphics *g, int *out_width, int *out_height);
-
+void Graphics_getWindowWidth(Graphics *g, int *width);
+void Graphics_getWindowHeight(Graphics *g, int *height);
 
 #endif
