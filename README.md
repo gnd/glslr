@@ -7,9 +7,9 @@
 
 ##Installation:
 
-On Ubuntu its enough to install libgles2-mesa-dev:
+On Ubuntu its enough to install libgles2-mesa-dev and libglfw3-dev:
 ```
-apt-get install git libgles2-mesa-dev
+apt-get install git libgles2-mesa-dev libglfw3-dev
 git clone https://github.com/k-o-l-e-k-t-i-v/glslr
 cd glslr
 make
