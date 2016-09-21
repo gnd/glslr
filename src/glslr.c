@@ -313,7 +313,7 @@ static int GetLastFileModifyTime(const char *file_path, time_t *out_mod_time)
 	if (stat(file_path, &sb) == -1) {
         int errsv = errno;
         if (errsv == ENOENT ){ printf("ENOENT: %s\r\n", file_path); }
-       return 1;
+        return 1;
 	}
 	*out_mod_time = sb.st_mtime;
 	return 0;
@@ -724,10 +724,12 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	int i;
 	int layer;
     int width, height;
-    char layers[99][32];  /* hard limits meh */
+    //char layers[99][32];  /* hard limits meh */
+    char **layers;
 	Graphics *g;
 
 	g = gx->graphics;
+    layers = malloc(sizeof(char*)*(argc+1));
     layer = 0;
       
 	for (i = 1; i < argc; i++) {
@@ -813,11 +815,18 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 			gx->net_params=atoi(argv[i]); /* handle error gnd */
             continue;
 		} 
+        
         // the rest is layers 
-        printf("layer %d: %s\r\n", layer, argv[i]);
-        memset(layers[layer], '\0', sizeof(layers[layer]));
+        if ((argc - i) < 1) {
+            printf("No layer specified\r\n");
+            Glslr_Usage();
+        }
+        int length = strlen(argv[i]);
+        layers[layer] = malloc((length + i) * sizeof(char));
         strcpy(layers[layer], argv[i]);
-		layer += 1;
+        printf("layer %d: %s\r\n", layer, argv[i]);
+		layer++;
+        layers[layer] = NULL;   
 	}
     
     Graphics_SetupViewport(gx->graphics); /* has to be done after args parsing but before appending layers */
@@ -871,3 +880,4 @@ int Glslr_Main(Glslr *gx)
 	Glslr_MainLoop(gx);
 	return EXIT_SUCCESS;
 }
+
