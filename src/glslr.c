@@ -490,6 +490,7 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 					GXDebug(gx, ("errno = %d\r\n", errno));
 				}
 				GXDebug(gx, ("update: %s\r\n", so->path));
+                // here comes include extend function
 				RenderLayer_UpdateShaderSource(layer, code, (int)len);
 				so->last_modify_time = t;
 				Graphics_BuildRenderLayer(gx->graphics, i);
@@ -715,8 +716,29 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
 	len = fread(code, 1, sizeof(code), fp);
 	fclose(fp);
 	so = SourceObject_Create(path);
+    code = Glslr_IncludeAdditionalCode(code);
 	Graphics_AppendRenderLayer(gx->graphics, code, (int)len, (void *)so);
 	return 0;
+}
+
+// this will not work unless its done when the code is refreshed - not on the first read
+char Glslr_IncludeAdditionalCode(char code)
+{
+    FILE *fp;
+    char inc_code[MAX_SOURCE_BUF];
+    size_t len;
+    
+    if find substring in code #include filename {
+        read filename into path;
+        fp = fopen(path, "r");
+        if (fp == NULL) {
+            fprintf(stderr, "include file open failed: %s\r\n", path);
+            return 1;
+        }
+        fread(inc_code, 1, sizeof(inc_code), fp);
+        fclose(fp);
+        replace #include filename code inc_code;
+        return code;
 }
 
 int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])

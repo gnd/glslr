@@ -12,7 +12,6 @@
 
 /* TODO
 * - make the windowed / fullscreen behaviour on keypress
-* - more robust solution for fullscreen on secondary monitor
 */
 
 
