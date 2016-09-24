@@ -42,13 +42,16 @@ uniform float mN;
 
 ## Using include:
 
-**glslr** provides support to include GLSL files from within the shader. Lines containing the string //#include <file> will be replaced with the contents of the <file>:
+**glslr** provides support to include GLSL files from within the shader. Lines containing the string //#include file will be replaced with the contents of the file:
 
-```
+
 function.glsl:
+```
 color = vec3(1.,0.,0.);
+```
 
 project.glsl:
+```
 void main(void) {
 	vec3 c=vec3(0.,1.,0.);
 
