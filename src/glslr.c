@@ -480,8 +480,10 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 			} else {
 				size_t len;
 				char code[MAX_SOURCE_BUF]; /* hmm.. */
+                memset(code,'\0',MAX_SOURCE_BUF);
 				errno = 0;
 				len = fread(code, 1, sizeof(code), fp);
+                fclose(fp);
 				/* TODO: handle errno */
 				if (ferror(fp) != 0) {
 					GXDebug(gx, ("ferror = %d\r\n", ferror(fp)));
@@ -491,6 +493,8 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 				}
 				GXDebug(gx, ("update: %s\r\n", so->path));
                 // here comes include extend function
+                Glslr_IncludeAdditionalCode(&code);
+                len = strlen(code);
 				RenderLayer_UpdateShaderSource(layer, code, (int)len);
 				so->last_modify_time = t;
 				Graphics_BuildRenderLayer(gx->graphics, i);
@@ -716,29 +720,59 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
 	len = fread(code, 1, sizeof(code), fp);
 	fclose(fp);
 	so = SourceObject_Create(path);
-    code = Glslr_IncludeAdditionalCode(code);
+    Glslr_IncludeAdditionalCode(&code); //handle error
+    len = strlen(code);
 	Graphics_AppendRenderLayer(gx->graphics, code, (int)len, (void *)so);
 	return 0;
 }
 
-// this will not work unless its done when the code is refreshed - not on the first read
-char Glslr_IncludeAdditionalCode(char code)
+void Glslr_IncludeAdditionalCode(char *code)
 {
     FILE *fp;
     char inc_code[MAX_SOURCE_BUF];
-    size_t len;
+    char res_code[MAX_SOURCE_BUF];
+    char *new_code, *new_index;
+    size_t startlen, inclen, restlen;
+    char *start, *index, *c, *filename;
     
-    if find substring in code #include filename {
-        read filename into path;
-        fp = fopen(path, "r");
-        if (fp == NULL) {
-            fprintf(stderr, "include file open failed: %s\r\n", path);
-            return 1;
+    start = code;
+    index = strstr(code, "//#include");
+    if (index != NULL) {
+        c = index;
+        *(c+=11);
+        int i = 0;
+        while ((c[i] != EOF) && (c[i] != '\n')) {
+            i++;
         }
-        fread(inc_code, 1, sizeof(inc_code), fp);
+        filename = malloc((i+1) * sizeof(char));
+        strncpy(filename, c, i);
+        filename[i] = '\0';
+        *(c+=i+1);
+
+        //read code to include
+        fp = fopen(filename, "r");
+        if (fp == NULL) {
+            fprintf(stderr, "Include file open failed: %s\r\n", filename);
+            exit(0);
+        }
+        inclen = fread(inc_code, 1, sizeof(inc_code), fp);
         fclose(fp);
-        replace #include filename code inc_code;
-        return code;
+        inc_code[strlen(inc_code)] = '\0';
+    
+        // do some math
+        startlen = index - start;
+        restlen = strlen(c);
+        new_code = malloc((startlen + inclen + restlen) * sizeof(char));
+        new_index = new_code;
+        // now replace the //#include
+        strncpy(new_index, start, startlen);
+        new_index += startlen;
+        strncpy(new_index, inc_code, inclen);
+        new_index += inclen;
+        strncpy(new_index, c, restlen);
+        new_code[startlen + inclen + restlen] = '\0';
+        strcpy(code, new_code);
+    }
 }
 
 int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
@@ -746,7 +780,6 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	int i;
 	int layer;
     int width, height;
-    //char layers[99][32];  /* hard limits meh */
     char **layers;
 	Graphics *g;
 
