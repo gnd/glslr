@@ -5,6 +5,8 @@
 
 **glslr** is able to receive control data through a network socket which is then fed to the shader in the form of uniform variables.
 
+**glslr** enables GLSL code-reuse across projects with its #include support.
+
 ##Installation:
 
 On Ubuntu its enough to install libgles2-mesa-dev and libglfw3-dev:
@@ -37,6 +39,25 @@ uniform float m0;
 ..
 uniform float mN;
 ```
+
+## Using include:
+
+**glslr** provides support to include GLSL files from within the shader. Lines containing the string //#include <file> will be replaced with the contents of the <file>:
+
+```
+function.glsl:
+color = vec3(1.,0.,0.);
+
+project.glsl:
+void main(void) {
+	vec3 c=vec3(0.,1.,0.);
+
+	//#include function.glsl  //<- this line will be replaced with contents of the function.glsl file
+	
+	gl_FragColor = vec4(c, 1.0);
+}
+```
+
 
 **glslr** is a fork of pijockey-sound (https://github.com/k-o-l-e-k-t-i-v/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of PiJockey by sharrow.
 **glslr** was ported to x86, using GLFW.
