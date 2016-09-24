@@ -55,7 +55,8 @@ project.glsl:
 void main(void) {
 	vec3 c=vec3(0.,1.,0.);
 
-	//#include function.glsl  //<- this line will be replaced with contents of the function.glsl file
+	//#include function.glsl  
+    // ^^^ this line will be replaced with contents of the function.glsl file
 	
 	gl_FragColor = vec4(c, 1.0);
 }
