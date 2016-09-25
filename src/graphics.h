@@ -70,6 +70,8 @@ void Graphics_Delete(Graphics *g);
 
 int Graphics_AppendRenderLayer(Graphics *g,
                                const char *source,
+                               int lines_before,
+                               int lines_included,
                                OPTIONAL int source_length,
                                OPTIONAL void *auxptr);
 

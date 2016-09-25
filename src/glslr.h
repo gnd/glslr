@@ -13,6 +13,6 @@ void Glslr_Destruct(Glslr *gx);
 int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[]);
 int Glslr_Main(Glslr *gx);
 void Glslr_Usage(void);
-void Glslr_IncludeAdditionalCode(char *code);
+void Glslr_IncludeAdditionalCode(char *code, int *lines_before, int *lines_included);
 
 #endif

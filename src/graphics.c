@@ -43,6 +43,8 @@ struct RenderLayer_ {
 		GLuint rand;
 		GLuint prev_layer;
 		GLuint prev_layer_resolution;
+        GLuint lines_before_include;
+        GLuint lines_included;
 	} attr;
 	void *auxptr;
 };
@@ -155,18 +157,43 @@ void Graphics_HostDeinitialize(void)
 {
 }
 
-static void PrintShaderLog(const char *message, GLuint shader)
+static void PrintShaderLog(const char *message, GLuint shader, int before, int included)
 {
+    char *a, *b, *line_str;
+    int line_num, in_include = 0;
 	GLchar build_log[512];
-	glGetShaderInfoLog(shader, sizeof(build_log), NULL, build_log);
-	printf("%s %d: %s\r\n", message, shader, build_log);
+    
+    glGetShaderInfoLog(shader, sizeof(build_log), NULL, build_log);
+    if (!before && !included) {
+        printf("%s %d: %s\r\n", message, shader, build_log);
+    } else { // compute the real line number in the layer source file
+        a = strstr(build_log, "(");
+        b = strstr(build_log, ")");
+        line_num = strtol(a+1,NULL,10);
+        //printf("Line-num: %d\r\n", line_num);
+        if (line_num > (before + included)) {
+            line_num = line_num - included + 1;
+        } else {
+            if (line_num > before) {
+                line_num = line_num - before;
+                in_include = 1;
+            }
+        }
+        line_str = malloc((10 + strlen(b)) * sizeof(char));  //should not be bigger than 10 digits
+        sprintf(line_str, "%d%s", line_num, b);
+        strcpy(a+1, line_str);
+        if (!in_include) {
+            printf("%s %d: %s\r\n", message, shader, build_log);
+        } else {
+            printf("%s %d: %s %s\r\n", message, shader, "in include:", build_log);
+        }
+    }
 }
 
 static void PrintProgramLog(const char *message, GLuint program)
 {
 	GLchar build_log[512];
 	glGetProgramInfoLog(program, sizeof(build_log), NULL, build_log);
-	printf("%s %d: %s\r\n", message, program, build_log);
 }
 
 
@@ -185,12 +212,16 @@ static int Scaling_IsOne(Scaling *sc)
 
 /* RenderLayer */
 static int RenderLayer_Construct(RenderLayer *layer,
+                                int lines_before,
+                                int lines_included,
                                  OPTIONAL void *auxptr)
 {
 	static const RenderLayer render_layer0 = { 0 };
 	*layer = render_layer0;
 	layer->auxptr = auxptr;
 	layer->fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    layer->attr.lines_before_include = lines_before;
+    layer->attr.lines_included = lines_included;
 	return (layer->fragment_shader == 0) ? 1 : 0;
 }
 
@@ -328,7 +359,7 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	glCompileShader(layer->fragment_shader);
 	glGetShaderiv(layer->fragment_shader, GL_COMPILE_STATUS, &param);
 	if (param != GL_TRUE) {
-		PrintShaderLog("fragment_shader", layer->fragment_shader);
+		PrintShaderLog("buildprog: fragment_shader", layer->fragment_shader, layer->attr.lines_before_include, layer->attr.lines_included);
 		return 2;
 	}
 
@@ -477,7 +508,7 @@ static int Graphics_SetupInitialState(Graphics *g)
 		glCompileShader(g->vertex_shader);
 		glGetShaderiv(g->vertex_shader, GL_COMPILE_STATUS, &param);
 		if (param != GL_TRUE) {
-			PrintShaderLog("vertex_shader", g->vertex_shader);
+			PrintShaderLog("vertex_shader", g->vertex_shader, 0, 0);
 			assert(0);
 			return 1;
 		}
@@ -613,6 +644,8 @@ void Graphics_setSourceSize(int _width, int _height)
 
 int Graphics_AppendRenderLayer(Graphics *g,
                                const char *source,
+                               int lines_before,
+                               int lines_included,
                                OPTIONAL int source_length,
                                OPTIONAL void *auxptr)
 {
@@ -623,7 +656,7 @@ int Graphics_AppendRenderLayer(Graphics *g,
 	}
 
 	layer = &g->render_layer[g->num_render_layer];
-	if (RenderLayer_Construct(layer, auxptr)) {
+	if (RenderLayer_Construct(layer, lines_before, lines_included, auxptr)) {
 		return 2;
 	}
 
