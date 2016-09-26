@@ -363,6 +363,7 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 		return 2;
 	}
 
+    printf("1\r\n");
 	new_program = glCreateProgram();
 	glAttachShader(new_program, vertex_shader);
 	glAttachShader(new_program, layer->fragment_shader);
@@ -372,8 +373,10 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 		PrintProgramLog("program", new_program);
 		return 3;
 	}
+
 	glDeleteProgram(layer->program);
 	layer->program = new_program;
+
 
 	glUseProgram(layer->program);
 	layer->attr.vertex_coord = glGetAttribLocation(layer->program, "vertex_coord");
@@ -561,7 +564,7 @@ void Graphics_SetupViewport(Graphics *g) {
                 g->viewport.w = mode_secondary->height;
                 glfwWindowHint(GLFW_DECORATED,GL_FALSE);
             } else {
-                printf("Cant detect any secondary monitors");
+                printf("Cant detect any secondary monitors\r\n");
                 exit(0);
             }
         break;
@@ -571,7 +574,7 @@ void Graphics_SetupViewport(Graphics *g) {
                 glfwGetMonitorPos(monitors[1], &xpos, &ypos);
                 printf("Placing render window at monitor[1] position: %d x %d \r\n", xpos, ypos);
             } else {
-                printf("Cant detect any secondary monitors");
+                printf("Cant detect any secondary monitors\r\n");
                 exit(0);
             }
         break;
@@ -780,7 +783,7 @@ void Graphics_DeallocateOffscreen(Graphics *g)
 
 int Graphics_BuildRenderLayer(Graphics *g, int layer_index)
 {
-	RenderLayer_BuildProgram(&g->render_layer[layer_index],
+    RenderLayer_BuildProgram(&g->render_layer[layer_index],
 	                         g->vertex_shader,
 	                         g->array_buffer_fullscene_quad,
 	                         g->net_params);
