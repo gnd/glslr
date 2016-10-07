@@ -493,7 +493,7 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 				}
 				GXDebug(gx, ("update: %s\r\n", so->path));
                 // here comes include extend function
-                Glslr_IncludeAdditionalCode(&code, len, &lines_before, &lines_included);
+                Glslr_IncludeAdditionalCode(code, len, &lines_before, &lines_included);
 				RenderLayer_UpdateShaderSource(layer, code, (int)len);
 				so->last_modify_time = t;
 				Graphics_BuildRenderLayer(gx->graphics, i);
@@ -724,7 +724,10 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
 	len = fread(code, 1, sizeof(code), fp);
 	fclose(fp);
 	so = SourceObject_Create(path);
-    Glslr_IncludeAdditionalCode(&code, len, &lines_before, &lines_included); //handle error
+    Glslr_IncludeAdditionalCode(code, len, &lines_before, &lines_included); //handle error
+            fp = fopen("/tmp/returned","w");
+        fputs(code, fp);
+        fclose(fp);
 	Graphics_AppendRenderLayer(gx->graphics, code, lines_before, lines_included, (int)len, (void *)so);
 	return 0;
 }
@@ -752,15 +755,27 @@ void Glslr_IncludeAdditionalCode(char *code, int len, int *lines_before, int *li
     index = strstr(code, "//#include");
     if (index != NULL) {
         c = index;
-        *(c+=11); //size of "//#include"
+        // move size of "//#include "
+        //printf("C at: %c\r\n", c[0]);
+        for (int i=0; i<11; i++) {
+            c++;
+             //printf("C at: %c\r\n", c[0]);
+        }
         int i = 0;
         while ((c[i] != EOF) && (c[i] != '\n')) {
             i++;
         }
-        filename = malloc((i+1) * sizeof(char));
+        filename = (char *)malloc((i+1) * sizeof(char));
         strncpy(filename, c, i);
         filename[i] = '\0';
-        *(c+=i+1);
+        //printf("filename: %s\r\n", filename);
+        // move size of filename
+        for (int j=0; j<i; j++) {
+            c++;
+            //printf("C at: %c (HEX: %x\r\n", c[0], c[0]);
+        }
+        c++;
+        //printf("C at: %c (HEX: %x\r\n", c[0], c[0]);
 
         //read code to include
         fp = fopen(filename, "r");
@@ -777,7 +792,7 @@ void Glslr_IncludeAdditionalCode(char *code, int len, int *lines_before, int *li
         restlen = len - startlen - 11 - i - 1; //gross
         *lines_before = Glslr_GetLineCount(code, startlen);
         *lines_included = Glslr_GetLineCount(inc_code, inclen);
-        new_code = malloc((startlen + inclen + restlen) * sizeof(char));
+        new_code = (char *)malloc((startlen + inclen + restlen + 1) * sizeof(char));
         new_index = new_code;
         // now replace the //#include
         strncpy(new_index, start, startlen);
@@ -794,7 +809,7 @@ void Glslr_IncludeAdditionalCode(char *code, int len, int *lines_before, int *li
 }
 int Glslr_GetLineCount(char *code, size_t size)  
 {
-    int i = 0;
+    unsigned int i = 0;
     int lines = 0;
     while (i <= size) {
         if (code[i] == '\n') {
