@@ -170,7 +170,6 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
         a = strstr(build_log, "(");
         b = strstr(build_log, ")");
         line_num = strtol(a+1,NULL,10);
-        //printf("Line-num: %d\r\n", line_num);
         if (line_num > (before + included)) {
             line_num = line_num - included + 1;
         } else {
@@ -357,13 +356,13 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 
 	CHECK_GL();
 	glCompileShader(layer->fragment_shader);
+    FILE *fp;
 	glGetShaderiv(layer->fragment_shader, GL_COMPILE_STATUS, &param);
 	if (param != GL_TRUE) {
-		PrintShaderLog("buildprog: fragment_shader", layer->fragment_shader, layer->attr.lines_before_include, layer->attr.lines_included);
+		PrintShaderLog("fragment_shader", layer->fragment_shader, layer->attr.lines_before_include, layer->attr.lines_included);
 		return 2;
 	}
 
-    printf("1\r\n");
 	new_program = glCreateProgram();
 	glAttachShader(new_program, vertex_shader);
 	glAttachShader(new_program, layer->fragment_shader);

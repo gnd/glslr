@@ -113,7 +113,7 @@ static void addport(int fd)
 		fprintf(stderr, "out of memory");
 		exit(1);
 	}
-	printf("number_connected %d;\n", nfdpoll);
+	printf("number_connected %d;\r\n", nfdpoll);
 }
 
 
@@ -132,11 +132,11 @@ static void rmport(t_fdpoll *x)
 			fdpoll = (t_fdpoll *)realloc(fdpoll,
 			                             (nfdpoll-1) * sizeof(t_fdpoll));
 			nfdpoll--;
-			printf("number_connected %d;\n", nfdpoll);
+			printf("number_connected %d;\r\n", nfdpoll);
 			return;
 		}
 	}
-	fprintf(stderr, "warning: item removed from poll list but not found");
+	fprintf(stderr, "warning: item removed from poll list but not found\r\n");
 }
 
 
@@ -218,7 +218,7 @@ static int tcpmakeoutput(t_fdpoll *x, char *inbuf, int len)
 		x->fdp_gotsemi = 0;
 		//output buffer overflow; reserve 1 for '\n'
 		if (outlen >= (BUFSIZE-1)) {
-			fprintf(stderr, "message too long; discarding\n");
+			fprintf(stderr, "message too long; discarding\r\n");
 			outlen = 0;
 			x->fdp_discard = 1;
 		}
@@ -253,7 +253,7 @@ static void tcpread(t_fdpoll *x)
 static void sockerror(const char *s)
 {
 	int err = errno;
-	fprintf(stderr, "%s: %s (%d)\n", s, strerror(err), err);
+	fprintf(stderr, "%s: %s (%d)\r\n", s, strerror(err), err);
 }
 
 static void x_closesocket(int fd)
@@ -478,12 +478,12 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 			if (fp == NULL) {
 				fprintf(stderr, "[2] file open failed: %s\r\n", so->path);
 			} else {
-				size_t len;
+				int len = 0;
 				char code[MAX_SOURCE_BUF]; /* hmm.. */
                 memset(code,'\0',MAX_SOURCE_BUF);
 				errno = 0;
 				len = fread(code, 1, sizeof(code), fp);
-                fclose(fp);
+                
 				/* TODO: handle errno */
 				if (ferror(fp) != 0) {
 					GXDebug(gx, ("ferror = %d\r\n", ferror(fp)));
@@ -491,9 +491,10 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 				if (errno != 0) {
 					GXDebug(gx, ("errno = %d\r\n", errno));
 				}
+                fclose(fp);
 				GXDebug(gx, ("update: %s\r\n", so->path));
                 // here comes include extend function
-                Glslr_IncludeAdditionalCode(code, len, &lines_before, &lines_included);
+                Glslr_IncludeAdditionalCode(code, &len, &lines_before, &lines_included);
 				RenderLayer_UpdateShaderSource(layer, code, (int)len);
 				so->last_modify_time = t;
 				Graphics_BuildRenderLayer(gx->graphics, i);
@@ -709,9 +710,8 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
 	SourceObject *so;
 	FILE *fp;
 	char code[MAX_SOURCE_BUF];
-	size_t len = 0;
-    int lines_before, lines_included;
-    
+    int len, lines_before, lines_included;
+    len = 0;
     lines_before = 0;
     lines_included = 0;
     
@@ -724,20 +724,17 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
 	len = fread(code, 1, sizeof(code), fp);
 	fclose(fp);
 	so = SourceObject_Create(path);
-    Glslr_IncludeAdditionalCode(code, len, &lines_before, &lines_included); //handle error
-            fp = fopen("/tmp/returned","w");
-        fputs(code, fp);
-        fclose(fp);
+    Glslr_IncludeAdditionalCode(code, &len, &lines_before, &lines_included); //handle error
 	Graphics_AppendRenderLayer(gx->graphics, code, lines_before, lines_included, (int)len, (void *)so);
 	return 0;
 }
 
-void Glslr_IncludeAdditionalCode(char *code, int len, int *lines_before, int *lines_included)
+void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *lines_included)
 {
     FILE *fp;
     char inc_code[MAX_SOURCE_BUF];
     char *new_code, *new_index;
-    size_t startlen, inclen, restlen;
+    size_t startlen, inclen, restlen, newlen;
     char *start, *index, *c, *filename;
     *lines_before = 0;
     *lines_included = 0;
@@ -756,10 +753,8 @@ void Glslr_IncludeAdditionalCode(char *code, int len, int *lines_before, int *li
     if (index != NULL) {
         c = index;
         // move size of "//#include "
-        //printf("C at: %c\r\n", c[0]);
         for (int i=0; i<11; i++) {
             c++;
-             //printf("C at: %c\r\n", c[0]);
         }
         int i = 0;
         while ((c[i] != EOF) && (c[i] != '\n')) {
@@ -768,14 +763,11 @@ void Glslr_IncludeAdditionalCode(char *code, int len, int *lines_before, int *li
         filename = (char *)malloc((i+1) * sizeof(char));
         strncpy(filename, c, i);
         filename[i] = '\0';
-        //printf("filename: %s\r\n", filename);
         // move size of filename
         for (int j=0; j<i; j++) {
             c++;
-            //printf("C at: %c (HEX: %x\r\n", c[0], c[0]);
         }
         c++;
-        //printf("C at: %c (HEX: %x\r\n", c[0], c[0]);
 
         //read code to include
         fp = fopen(filename, "r");
@@ -789,22 +781,22 @@ void Glslr_IncludeAdditionalCode(char *code, int len, int *lines_before, int *li
     
         // do some math
         startlen = index - start;
-        restlen = len - startlen - 11 - i - 1; //gross
+        restlen = *len - startlen - 11 - i - 1; //gross
         *lines_before = Glslr_GetLineCount(code, startlen);
         *lines_included = Glslr_GetLineCount(inc_code, inclen);
         new_code = (char *)malloc((startlen + inclen + restlen + 1) * sizeof(char));
         new_index = new_code;
+        
         // now replace the //#include
         strncpy(new_index, start, startlen);
         new_index += startlen;
         strncpy(new_index, inc_code, inclen);
         new_index += inclen;
         strncpy(new_index, c, restlen);
-        new_code[startlen + inclen + restlen] = '\0';
+        newlen = startlen + inclen + restlen;
+        new_code[newlen-1] = '\0';
         strcpy(code, new_code);
-        //fp = fopen("/tmp/included","w");
-        //fputs(new_code, fp);
-        //fclose(fp);
+        *len = newlen;
     }
 }
 int Glslr_GetLineCount(char *code, size_t size)  

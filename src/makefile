@@ -9,6 +9,7 @@ CFLAGS+=-Wcast-align
 ifeq (yes, $(DEBUG))
   CFLAGS+=-g
 else
+  #CFLAGS+=-g
   CFLAGS+=-O2 -s
 endif
 CFLAGS += -DPLATFORM_LINUX $(shell pkg-config --cflags glfw3 glu gl) 
