@@ -55,10 +55,10 @@ glslr --vdev 1 example.glsl
 ````
 In the shader you can access the video data by using uniform sampler2D variable called video:
 ```
+uniform vec2 resolution;
 uniform sampler2D video;
 
-...
-p = vec2( gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);
+vec2 p = vec2( gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);
 gl_FragColor = texture2D(video, p);
 ```
 
