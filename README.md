@@ -58,7 +58,7 @@ In the shader you can access the video data by using uniform sampler2D variable 
 uniform sampler2D video;
 
 ...
-
+p = vec2( gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);
 gl_FragColor = texture2D(video, p);
 ```
 
