@@ -28,9 +28,9 @@ glslr example.glsl
 glslr --net --port [port] --params N example.glsl
 ```
 
-The parameters must be sent via UDP to the [port] in the form: 
-*"param0 param1 param2 ... paramN;"*.
-A reference is to use PureData's object [netsend].
+The parameters must be sent via UDP to the [port] in the form:  
+*"param0 param1 param2 ... paramN;"*.  
+A reference is to use PureData's object [netsend].  
 Currently only integer and float variables are supported.
 
 ## Using parameters:
@@ -48,7 +48,7 @@ uniform float mN;
 ```
 glslr --vdev [video device number] example.glsl
 ```
-Provide the video device number to be able to use it in the shader. Default is 0 which expands to /dev/video0. 
+Provide the video device number to be able to use it in the shader. Default is 0 which expands to /dev/video0.  
 Eg. if you want to use /dev/video1 do: 
 
 ```
@@ -88,6 +88,7 @@ void main(void) {
 ```
 
 
-**glslr** is a fork of pijockey-sound (https://github.com/k-o-l-e-k-t-i-v/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of PiJockey by sharrow.
-**glslr** was ported to x86, using GLFW. The Video4Linux capability was ripped ut from **glutcam** George Koharchik (https://www.linuxjournal.com/content/image-processing-opengl-and-shaders)
+**glslr** is a fork of pijockey-sound (https://github.com/k-o-l-e-k-t-i-v/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of PiJockey by sharrow.  
+**glslr** was ported to x86, using GLFW.  
+The Video4Linux capability was ripped ut from **glutcam** George Koharchik.
 
