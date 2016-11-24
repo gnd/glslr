@@ -48,7 +48,8 @@ uniform float mN;
 ```
 glslr --vdev [video device number] example.glsl
 ```
-Provide the video device number to be able to use it in the shader. Default is 0 which expands to /dev/video0. Eg. if you want to use /dev/video1 do: 
+Provide the video device number to be able to use it in the shader. Default is 0 which expands to /dev/video0. 
+Eg. if you want to use /dev/video1 do: 
 
 ```
 glslr --vdev 1 example.glsl
