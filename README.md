@@ -17,7 +17,34 @@ make
 
 ##Usage:
 ```
-glslr example.glsl
+usage: glslr [options] <layer0.glsl> [layer1.glsl] [layer2.glsl] ...
+options:
+  window properties:
+    --primary-fs                            create a fullscreen window on primary monitor
+    --primary-res [WidthxHeight]            create a width x height window on primary monitor (default: 800x600)
+    --secondary-fs                          create a fullscreen window on secondary monitor
+    --secondary-res [WidthxHeight]          create a width x height window on secondary monitor
+  offscreen format:
+    --RGB888
+    --RGBA8888 (default)
+    --RGB565
+    --RGBA4444
+  interpolation mode:
+    --nearestneighbor (default)
+    --bilinear
+  wrap mode:
+    --wrap-clamp_to_edge
+    --wrap-repeat (default)
+    --wrap-mirror_repeat
+  backbuffer:
+    --backbuffer                            enable backbuffer (default:OFF)
+  network:
+    --net                                   enable network (default:OFF)
+    --tcp                                   enable TCP (default:UDP)
+    --port [port]                           listen on port (default:6666)
+    --params [n]                            number of net input params (default:0)
+  video:
+    --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)
 ```
 ##Usage with network:
 ```
