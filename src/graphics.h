@@ -59,19 +59,6 @@ typedef struct displaydata {
   int bytes_per_pixel; /* of the texture   */
   int internal_format; /* of the texture data  */
   int pixelformat;/* of the texture pixels  */
-  unsigned int texturename; /* of the primary texture   */
-  unsigned int u_texturename; /* of the u component of yuv420 texture   */
-  unsigned int v_texturename; /* of the v component of yuv420 texture   */
-  int primary_texture_unit; /* texture for non-planar formats  */
-  int u_texture_unit; /* texture unit for U component of YUV420  */
-  int v_texture_unit;/* texture unit for V component of YUV420  */
-  float t0[2]; /* texture coordinates  */
-  float t1[2];
-  float t2[2];
-  float t3[2];
-  void * texture; /* the buffer with current pixels  */
-  void * u_texture;
-  void * v_texture;
 } Displaydata_t;
 
 
