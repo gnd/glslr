@@ -7,6 +7,8 @@
 
 **glslr** enables GLSL code-reuse across projects with its #include support.
 
+**glslr** now has experimental Video4Linux support.
+
 ##Installation:
 
 On Ubuntu its enough to install libgles2-mesa-dev and libglfw3-dev:
@@ -38,6 +40,26 @@ Currently only integer and float variables are supported.
 uniform float m0;
 ..
 uniform float mN;
+```
+
+##Usage with video:
+
+**glslr** makes it possible to use experimental live video input from a V4L device. Currently only YUV422 devices are supported.
+```
+glslr --vdev [video device number] example.glsl
+```
+Provide the video device number to be able to use it in the shader. Default is 0 which expands to /dev/video0. Eg. if you want to use /dev/video1 do: 
+
+```
+glslr --vdev 1 example.glsl
+````
+In the shader you can access the video data by using uniform sampler2D variable called video:
+```
+uniform sampler2D video;
+
+...
+
+gl_FragColor = texture2D(video, p);
 ```
 
 ## Using include:
