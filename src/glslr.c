@@ -21,11 +21,13 @@
 #include <fcntl.h>
 #include <termios.h>
 
-
 #include "config.h"
 #include "base.h"
 #include "glslr.h"
 #include "graphics.h"
+//#include "v4l2.h"
+#include "v4l2_controls.h"
+#include "util_textfile.h"
 
 /* pdreceive includes */
 #include <sys/socket.h>
@@ -55,8 +57,11 @@ typedef struct {
 struct Glslr_ {
 	Graphics *graphics;
 	Graphics_LAYOUT layout_backup;
+    Sourceparams_t sourceparams;
+    Videocapabilities_t capabilities;
 	int is_fullscreen;
 	int use_backbuffer;
+    int use_video;
 	int use_tcp;
 	int use_net;
 	int port;
@@ -66,6 +71,8 @@ struct Glslr_ {
 	} mouse;
 	netin_val *net_input_val;
 	int net_params;
+    int video_dev_num;
+    char video_device[12];
 	double time_origin;
 	unsigned int frame;         /* TODO: move to graphics */
 	struct {
@@ -113,7 +120,7 @@ static void addport(int fd)
 		fprintf(stderr, "out of memory");
 		exit(1);
 	}
-	printf("number_connected %d;\r\n", nfdpoll);
+	printf("number_connected %d;\n", nfdpoll);
 }
 
 
@@ -132,11 +139,11 @@ static void rmport(t_fdpoll *x)
 			fdpoll = (t_fdpoll *)realloc(fdpoll,
 			                             (nfdpoll-1) * sizeof(t_fdpoll));
 			nfdpoll--;
-			printf("number_connected %d;\r\n", nfdpoll);
+			printf("number_connected %d;\n", nfdpoll);
 			return;
 		}
 	}
-	fprintf(stderr, "warning: item removed from poll list but not found\r\n");
+	fprintf(stderr, "warning: item removed from poll list but not found\n");
 }
 
 
@@ -218,7 +225,7 @@ static int tcpmakeoutput(t_fdpoll *x, char *inbuf, int len)
 		x->fdp_gotsemi = 0;
 		//output buffer overflow; reserve 1 for '\n'
 		if (outlen >= (BUFSIZE-1)) {
-			fprintf(stderr, "message too long; discarding\r\n");
+			fprintf(stderr, "message too long; discarding\n");
 			outlen = 0;
 			x->fdp_discard = 1;
 		}
@@ -253,7 +260,7 @@ static void tcpread(t_fdpoll *x)
 static void sockerror(const char *s)
 {
 	int err = errno;
-	fprintf(stderr, "%s: %s (%d)\r\n", s, strerror(err), err);
+	fprintf(stderr, "%s: %s (%d)\n", s, strerror(err), err);
 }
 
 static void x_closesocket(int fd)
@@ -312,7 +319,7 @@ static int GetLastFileModifyTime(const char *file_path, time_t *out_mod_time)
 	struct stat sb;
 	if (stat(file_path, &sb) == -1) {
         int errsv = errno;
-        if (errsv == ENOENT ){ printf("ENOENT: %s\r\n", file_path); }
+        if (errsv == ENOENT ){ printf("ENOENT: %s\n", file_path); }
         return 1;
 	}
 	*out_mod_time = sb.st_mtime;
@@ -343,12 +350,15 @@ int Glslr_Construct(Glslr *gx)
 	gx->graphics = Graphics_Create(Graphics_LAYOUT_PRIMARY_RESOLUTION,
 	                               scaling_numer, scaling_denom);
 	if (!gx->graphics) {
-		fprintf(stderr, "Graphics Initialize failed:\r\n");
+		fprintf(stderr, "Graphics Initialize failed:\n");
 		return 2;
 	}
+    
+    memset(&gx->sourceparams, 0, sizeof(gx->sourceparams));
 
 	gx->is_fullscreen = 0;
 	gx->use_backbuffer = 0;
+    gx->use_video = 0;
 	gx->use_tcp = 0;
 	gx->use_net = 0;
 	gx->port = 6666;
@@ -358,6 +368,8 @@ int Glslr_Construct(Glslr *gx)
 	gx->mouse.fd = open(MOUSE_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 	gx->net_input_val = NULL;
 	gx->net_params = 0;
+    gx->video_dev_num = 0;
+    //gx->video_device = NULL;
 	gx->time_origin = GetCurrentTimeInMilliSecond();
 	gx->frame = 0;
 	gx->verbose.render_time = 0;
@@ -438,6 +450,20 @@ static int Glslr_SwitchBackbuffer(Glslr *gx)
 	return Graphics_ApplyOffscreenChange(gx->graphics);
 }
 
+
+static int Glslr_SwitchVideo(Glslr *gx)
+{
+	gx->use_video ^= 1;
+	Graphics_SetVideo(gx->graphics, gx->use_video);
+    if (gx->use_video == 1) {
+            _enqueue_mmap_buffers(&gx->sourceparams);
+            _start_streaming(&gx->sourceparams);
+    } else {
+        _stop_streaming(&gx->sourceparams);
+    }
+	return Graphics_ApplyOffscreenChange(gx->graphics);
+}
+
 /* currently not working 
 static int Glslr_ChangeScaling(Glslr *gx, int add)
 {
@@ -453,7 +479,7 @@ static int Glslr_ChangeScaling(Glslr *gx, int add)
 	{
 		int width, height;
 		Graphics_GetSourceSize(gx->graphics, &width, &height);
-		printf("offscreen size = %dx%d px, scaling = %d/%d\r\n",
+		printf("offscreen size = %dx%d px, scaling = %d/%d\n",
 		       width, height, gx->scaling.numer, gx->scaling.denom);
 	}
 	return 0;
@@ -469,14 +495,14 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 		SourceObject *so;
 		so = RenderLayer_GetAux(layer);
 		if (GetLastFileModifyTime(so->path, &t)) {
-			fprintf(stderr, "[1] file open failed: %s\r\n", so->path);
+			fprintf(stderr, "[1] file open failed: %s\n", so->path);
 			continue;
 		}
 		if (so->last_modify_time != t) {
 			FILE *fp;
 			fp = fopen(so->path, "r");
 			if (fp == NULL) {
-				fprintf(stderr, "[2] file open failed: %s\r\n", so->path);
+				fprintf(stderr, "[2] file open failed: %s\n", so->path);
 			} else {
 				int len = 0;
 				char code[MAX_SOURCE_BUF]; /* hmm.. */
@@ -486,13 +512,13 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
                 
 				/* TODO: handle errno */
 				if (ferror(fp) != 0) {
-					GXDebug(gx, ("ferror = %d\r\n", ferror(fp)));
+					GXDebug(gx, ("ferror = %d\n", ferror(fp)));
 				}
 				if (errno != 0) {
-					GXDebug(gx, ("errno = %d\r\n", errno));
+					GXDebug(gx, ("errno = %d\n", errno));
 				}
                 fclose(fp);
-				GXDebug(gx, ("update: %s\r\n", so->path));
+				GXDebug(gx, ("update: %s\n", so->path));
                 // here comes include extend function
                 Glslr_IncludeAdditionalCode(code, &len, &lines_before, &lines_included);
 				RenderLayer_UpdateShaderSource(layer, code, (int)len);
@@ -531,7 +557,7 @@ static void Glslr_UpdateMousePosition(Glslr *gx)
 				// ok... try again next time
 				break;
 			} else {
-				printf("error on mouse-read: code %d(%s)\r\n", err, strerror(err));
+				printf("error on mouse-read: code %d(%s)\n", err, strerror(err));
 				return;
 			}
 		}
@@ -568,7 +594,7 @@ static void Glslr_SetUniforms(Glslr *gx)
 	Graphics_GetWindowSize(gx->graphics, &width, &height);
 	mouse_x = (double)gx->mouse.x / width;
 	mouse_y = (double)gx->mouse.y / height;
-	//printf("mousex: %d\r\n", gx->mouse.x);
+	//printf("mousex: %d\n", gx->mouse.x);
 
 	Graphics_SetUniforms(gx->graphics, t / 1000.0,
 	                     gx->net_input_val,
@@ -577,14 +603,28 @@ static void Glslr_SetUniforms(Glslr *gx)
 
 static void Glslr_Render(Glslr *gx)
 {
+    int framesize;
 	if (gx->verbose.render_time) {
-		double t, ms;
+		double t, vs, ms;
 		t = GetCurrentTimeInMilliSecond();
-		Graphics_Render(gx->graphics);
-		ms = GetCurrentTimeInMilliSecond() - t;
-		printf("render time: %.1f ms (%.0f fps)    \r", ms, 1000.0 / ms);
+        if (gx->use_video == 1) {
+            capture_video_frame(&gx->sourceparams, &framesize);
+            vs = GetCurrentTimeInMilliSecond();
+        } else {
+            vs = t;
+        }
+		Graphics_Render(gx->graphics, &gx->sourceparams);
+		ms = GetCurrentTimeInMilliSecond() - vs;
+        if (gx->use_video == 1) {
+            printf("render time: %.1f ms (%.0f fps) / video time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, vs-t, 1000.0 / (vs-t));
+        } else {
+            printf("render time: %.1f ms (%.0f fps)\r", ms, 1000.0 / ms);
+        }
 	} else {
-		Graphics_Render(gx->graphics);
+        if (gx->use_video == 1) {
+            capture_video_frame(&gx->sourceparams, &framesize);
+        }
+		Graphics_Render(gx->graphics, &gx->sourceparams);
 	}
 }
 
@@ -611,42 +651,45 @@ static int Glslr_Update(Glslr *gx)
 
 static void PrintHelp(void)
 {
-	printf("Key:\r\n");
-	printf("  t        FPS printing\r\n");
-	printf("  [ or ]   offscreen scaling (defunct)\r\n");
-	printf("  b        backbuffer ON/OFF\r\n");
-	printf("  q        exit\r\n");
+	printf("Key:\n");
+	printf("  t        FPS printing\n");
+	printf("  [ or ]   offscreen scaling (defunct)\n");
+	printf("  b        backbuffer ON/OFF\n");
+    printf("  v        video input ON/OFF\n");
+	printf("  q        exit\n");
 }
 
 void Glslr_Usage(void)
 {
-	printf("usage: glslr [options] <layer0.glsl> [layer1.glsl] [layer2.glsl] ...\r\n");
-	printf("options:\r\n");
-    printf("  window properties:\r\n");
-    printf("    --primary-fs                            create a fullscreen window on primary monitor\r\n");
-	printf("    --primary-res [WidthxHeight]            create a width x height window on primary monitor (default: 800x600)\r\n");
-    printf("    --secondary-fs                          create a fullscreen window on secondary monitor\r\n");
-	printf("    --secondary-res [WidthxHeight]          create a width x height window on secondary monitor\r\n");
-	printf("  offscreen format:\r\n");
-	printf("    --RGB888\r\n");
-	printf("    --RGBA8888 (default)\r\n");
-	printf("    --RGB565\r\n");
-	printf("    --RGBA4444\r\n");
-	printf("  interpolation mode:\r\n");
-	printf("    --nearestneighbor (default)\r\n");
-	printf("    --bilinear\r\n");
-	printf("  wrap mode:\r\n");
-	printf("    --wrap-clamp_to_edge\r\n");
-	printf("    --wrap-repeat (default)\r\n");
-	printf("    --wrap-mirror_repeat\r\n");
-	printf("  backbuffer:\r\n");
-	printf("    --backbuffer                            enable backbuffer (default:OFF)\r\n");
-	printf("  network:\r\n");
-	printf("    --net                                   enable network (default:OFF)\r\n");
-	printf("    --tcp                                   enable TCP (default:UDP)\r\n");
-	printf("    --port [port]                           listen on port (default:6666)\r\n");
-	printf("    --params [n]                            number of net input params (default:0)\r\n");
-	printf("\r\n");
+	printf("usage: glslr [options] <layer0.glsl> [layer1.glsl] [layer2.glsl] ...\n");
+	printf("options:\n");
+    printf("  window properties:\n");
+    printf("    --primary-fs                            create a fullscreen window on primary monitor\n");
+	printf("    --primary-res [WidthxHeight]            create a width x height window on primary monitor (default: 800x600)\n");
+    printf("    --secondary-fs                          create a fullscreen window on secondary monitor\n");
+	printf("    --secondary-res [WidthxHeight]          create a width x height window on secondary monitor\n");
+	printf("  offscreen format:\n");
+	printf("    --RGB888\n");
+	printf("    --RGBA8888 (default)\n");
+	printf("    --RGB565\n");
+	printf("    --RGBA4444\n");
+	printf("  interpolation mode:\n");
+	printf("    --nearestneighbor (default)\n");
+	printf("    --bilinear\n");
+	printf("  wrap mode:\n");
+	printf("    --wrap-clamp_to_edge\n");
+	printf("    --wrap-repeat (default)\n");
+	printf("    --wrap-mirror_repeat\n");
+	printf("  backbuffer:\n");
+	printf("    --backbuffer                            enable backbuffer (default:OFF)\n");
+	printf("  network:\n");
+	printf("    --net                                   enable network (default:OFF)\n");
+	printf("    --tcp                                   enable TCP (default:UDP)\n");
+	printf("    --port [port]                           listen on port (default:6666)\n");
+	printf("    --params [n]                            number of net input params (default:0)\n");
+    printf("  video:\n");
+    printf("    --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)\n");
+	printf("\n");
 }
 
 #if 0
@@ -659,6 +702,11 @@ static int Glslr_HandleKeyboadEvent(Glslr *gx)
 
 static int Glslr_PrepareMainLoop(Glslr *gx)
 {
+    const char *fmt = "/dev/video%d";
+    snprintf(&gx->video_device[0], 12, fmt, gx->video_dev_num);
+    printf("Initializing video device: %s\n", gx->video_device);
+    init_device_and_buffers(gx->video_device, &(gx->sourceparams), &(gx->capabilities));
+    Graphics_InitDisplayData(gx->graphics, &(gx->sourceparams));
 	return Graphics_AllocateOffscreen(gx->graphics);
 }
 
@@ -673,7 +721,7 @@ static void Glslr_MainLoop(Glslr *gx)
 		case 0x7f:      /* Ctrl+c */
 		case 0x03:      /* Ctrl+c */
 		case 0x1b:      /* ESC */
-			printf("\r\nexit\r\n");
+			printf("\nexit\n");
 			goto goal;
 		case ']':
 			// defunct
@@ -686,11 +734,15 @@ static void Glslr_MainLoop(Glslr *gx)
 		case 't':
 		case 'T':
 			gx->verbose.render_time ^= 1;
-			printf("\r\n");
+			printf("\n");
 			break;
 		case 'b':
 			Glslr_SwitchBackbuffer(gx);
-			printf("backbuffer %s\r\n", gx->use_backbuffer ? "ON": "OFF");
+			printf("backbuffer %s\n", gx->use_backbuffer ? "ON": "OFF");
+			break;
+        case 'v':
+			Glslr_SwitchVideo(gx);
+			printf("video input %s\n", gx->use_video ? "ON": "OFF");
 			break;
 		case '?':
 			PrintHelp();
@@ -715,10 +767,10 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
     lines_before = 0;
     lines_included = 0;
     
-	GXDebug(gx, ("Glslr_AppendLayer: %s\r\n", path));
+	GXDebug(gx, ("Glslr_AppendLayer: %s\n", path));
 	fp = fopen(path, "r");
 	if (fp == NULL) {
-		fprintf(stderr, "file open failed: %s\r\n", path);
+		fprintf(stderr, "file open failed: %s\n", path);
 		return 1;
 	}
 	len = fread(code, 1, sizeof(code), fp);
@@ -772,7 +824,7 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
         //read code to include
         fp = fopen(filename, "r");
         if (fp == NULL) {
-            fprintf(stderr, "Include file open failed: %s\r\n", filename);
+            fprintf(stderr, "Include file open failed: %s\n", filename);
             exit(0);
         }
         inclen = fread(inc_code, 1, sizeof(inc_code), fp);
@@ -797,6 +849,9 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
         new_code[newlen-1] = '\0';
         strcpy(code, new_code);
         *len = newlen;
+        fp = fopen("/tmp/kakinko", "w");
+        fputs(new_code, fp);
+        fclose(fp);
     }
 }
 int Glslr_GetLineCount(char *code, size_t size)  
@@ -907,16 +962,21 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 			gx->net_params=atoi(argv[i]); /* handle error gnd */
             continue;
 		} 
+        if (!strcmp(argv[i], "--vdev")) {
+            if (++i>=argc) Glslr_Usage();
+			gx->video_dev_num=atoi(argv[i]); /* handle error gnd */
+            continue;
+		} 
         
         // the rest is layers 
         if ((argc - i) < 1) {
-            printf("No layer specified\r\n");
+            printf("No layer specified\n");
             Glslr_Usage();
         }
         int length = strlen(argv[i]);
         layers[layer] = malloc((length + i) * sizeof(char));
         strcpy(layers[layer], argv[i]);
-        printf("layer %d: %s\r\n", layer, argv[i]);
+        printf("layer %d: %s\n", layer, argv[i]);
 		layer++;
         layers[layer] = NULL;   
 	}
@@ -926,7 +986,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
     
     // add layers
     for (i = 0; i < layer; i++) {
-        printf("Opening layer %d: %s\r\n", i, layers[i]);
+        printf("Opening layer %d: %s\n", i, layers[i]);
         Glslr_AppendLayer(gx, layers[i]);
     }
 	

@@ -10,6 +10,7 @@
 #include "base.h"
 #include "graphics.h"
 
+
 /* TODO
 * - make the windowed / fullscreen behaviour on keypress
 */
@@ -17,7 +18,7 @@
 
 enum {
     MAX_RENDER_LAYER = 8,
-    MAX_STATIC_IMAGE = 8
+    MAX_TEXTURES = 2
 };
 
 typedef struct {
@@ -40,6 +41,7 @@ struct RenderLayer_ {
 		GLuint time;
 		GLuint resolution;
 		GLuint backbuffer;
+        GLuint video;
 		GLuint rand;
 		GLuint prev_layer;
 		GLuint prev_layer_resolution;
@@ -66,14 +68,16 @@ struct Graphics_ {
 	Graphics_PIXELFORMAT texture_pixel_format;
 	RenderLayer render_layer[MAX_RENDER_LAYER];
 	int num_render_layer;
-	struct {
-		GLuint texture;
-	} static_image[MAX_STATIC_IMAGE]; /* TODO */
+    Displaydata_t displaydata;
 	int num_static_image;
 	int enable_backbuffer;
+    int enable_video;
 	int net_params;
+    GLuint textures[2];
 	GLuint backbuffer_texture_object;
 	GLuint backbuffer_texture_unit;
+    GLuint video_texture_object;
+    GLuint video_texture_unit;
 	Scaling window_scaling;
 	Scaling primary_framebuffer; /* TODO */
 };
@@ -107,14 +111,14 @@ static void CheckGLError(const char *file, int line, const char *func)
 	e = glGetError();
 	if (e != 0) {
 		int i;
-		printf("\r\nfrom %s(%d): function %s\r\n", file, line, func);
+		printf("\nfrom %s(%d): function %s\n", file, line, func);
 		for (i = 0; i < (int)ARRAY_SIZEOF(tbl); i++) {
 			if (e == tbl[i].code) {
-				printf("  OpenGL|ES raise: code 0x%04x (%s)\r\n", e, tbl[i].str);
+				printf("  OpenGL|ES raise: code 0x%04x (%s)\n", e, tbl[i].str);
 				return;
 			}
 		}
-		printf("  OpenGL|ES raise: code 0x%04x (?)\r\n", e);
+		printf("  OpenGL|ES raise: code 0x%04x (?)\n", e);
 	}
 }
 #endif
@@ -165,7 +169,7 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
     
     glGetShaderInfoLog(shader, sizeof(build_log), NULL, build_log);
     if (!before && !included) {
-        printf("%s %d: %s\r\n", message, shader, build_log);
+        printf("%s %d: %s\n", message, shader, build_log);
     } else { // compute the real line number in the layer source file
         a = strstr(build_log, "(");
         b = strstr(build_log, ")");
@@ -182,9 +186,9 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
         sprintf(line_str, "%d%s", line_num, b);
         strcpy(a+1, line_str);
         if (!in_include) {
-            printf("%s %d: %s\r\n", message, shader, build_log);
+            printf("%s %d: %s\n", message, shader, build_log);
         } else {
-            printf("%s %d: %s %s\r\n", message, shader, "in include:", build_log);
+            printf("%s %d: %s %s\n", message, shader, "in include:", build_log);
         }
     }
 }
@@ -403,6 +407,7 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	layer->attr.mouse = glGetUniformLocation(layer->program, "mouse");
 	layer->attr.resolution = glGetUniformLocation(layer->program, "resolution");
 	layer->attr.backbuffer = glGetUniformLocation(layer->program, "backbuffer");
+    layer->attr.video = glGetUniformLocation(layer->program, "video");
 	layer->attr.rand= glGetUniformLocation(layer->program, "rand");
 
 	layer->attr.prev_layer = glGetUniformLocation(layer->program, "prev_layer");
@@ -455,9 +460,12 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 	g->num_render_layer = 0;
 	g->window_scaling = sc;
 	g->enable_backbuffer = 0;
+    g->enable_video = 0;
 	g->net_params = 0;
 	g->backbuffer_texture_object = 0;
 	g->backbuffer_texture_unit = 0;
+    g->video_texture_object = 0;
+	g->video_texture_unit = 0;
     
 	return g;
 }
@@ -478,6 +486,19 @@ void Graphics_Delete(Graphics *g)
 
 	glfwTerminate();
 	free(g);
+}
+
+void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams) {
+    g->displaydata.window_width = sourceparams->image_width;
+    g->displaydata.window_height = sourceparams->image_height;
+    g->displaydata.texture_width = sourceparams->image_width;
+    g->displaydata.texture_height = sourceparams->image_height;
+    g->displaydata.bytes_per_pixel = 2;                 // int 2 for YUV422
+    // this can be switched in realtime (TODO)
+    //g->displaydata.internal_format = (GLint)GL_RGBA;
+    //g->displaydata.pixelformat = (GLenum)GL_RGBA;
+    g->displaydata.internal_format = (GLint)GL_RG;
+    g->displaydata.pixelformat = (GLenum)GL_RG;
 }
 
 static int Graphics_SetupInitialState(Graphics *g)
@@ -510,7 +531,7 @@ static int Graphics_SetupInitialState(Graphics *g)
 		glCompileShader(g->vertex_shader);
 		glGetShaderiv(g->vertex_shader, GL_COMPILE_STATUS, &param);
 		if (param != GL_TRUE) {
-			PrintShaderLog("vertex_shader", g->vertex_shader, 0, 0);
+			PrintShaderLog("vertex_shader", g->vertex_shader, g->render_layer->attr.lines_before_include, g->render_layer->attr.lines_included);
 			assert(0);
 			return 1;
 		}
@@ -536,7 +557,7 @@ void Graphics_SetupViewport(Graphics *g) {
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 	for (i = 0; i < count; i++) {
 		const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
-		printf("Monitor[%i]: %i x %i @ %i hz\r\n", i, mode->width, mode->height, mode->refreshRate);
+		fprintf(stderr, "Monitor[%i]: %i x %i @ %i hz\n", i, mode->width, mode->height, mode->refreshRate);
 	}
         
     xpos = 0;
@@ -544,10 +565,10 @@ void Graphics_SetupViewport(Graphics *g) {
  
     switch (g->layout) {
         case Graphics_LAYOUT_PRIMARY_RESOLUTION: /* default */
-            printf("Using primary monitor\r\n");
+            printf("Using primary monitor\n");
         break;
         case Graphics_LAYOUT_PRIMARY_FULLSCREEN:
-            printf("Using primary monitor in fullscreen mode\r\n");
+            printf("Using primary monitor in fullscreen mode\n");
             const GLFWvidmode* mode_primary = glfwGetVideoMode(monitors[0]);
             g->viewport.z = mode_primary->width;
             g->viewport.w = mode_primary->height;
@@ -555,25 +576,25 @@ void Graphics_SetupViewport(Graphics *g) {
         break;
         case Graphics_LAYOUT_SECONDARY_FULLSCREEN:
             if (count > 1) {
-                printf("Using secondary monitor in fullscreen mode\r\n");
+                printf("Using secondary monitor in fullscreen mode\n");
                 glfwGetMonitorPos(monitors[1], &xpos, &ypos);
-                printf("Placing render window at monitor[1] position: %d x %d \r\n", xpos, ypos);
+                printf("Placing render window at monitor[1] position: %d x %d \n", xpos, ypos);
                 const GLFWvidmode* mode_secondary = glfwGetVideoMode(monitors[1]);
                 g->viewport.z = mode_secondary->width;
                 g->viewport.w = mode_secondary->height;
                 glfwWindowHint(GLFW_DECORATED,GL_FALSE);
             } else {
-                printf("Cant detect any secondary monitors\r\n");
+                printf("Cant detect any secondary monitors\n");
                 exit(0);
             }
         break;
         case Graphics_LAYOUT_SECONDARY_RESOLUTION:
             if (count > 1) {
-                printf("Using secondary monitor\r\n");
+                printf("Using secondary monitor\n");
                 glfwGetMonitorPos(monitors[1], &xpos, &ypos);
-                printf("Placing render window at monitor[1] position: %d x %d \r\n", xpos, ypos);
+                printf("Placing render window at monitor[1] position: %d x %d \n", xpos, ypos);
             } else {
-                printf("Cant detect any secondary monitors\r\n");
+                printf("Cant detect any secondary monitors\n");
                 exit(0);
             }
         break;
@@ -742,19 +763,41 @@ int Graphics_AllocateOffscreen(Graphics *g)
 		                              g->texture_wrap_mode);
 		/* TODO: handle error */
 	}
+    glGenTextures(2, &g->textures);
+    g->video_texture_object = g->textures[0];
+    g->backbuffer_texture_object = g->textures[1];
+    if (g->enable_video) {
+        GLint internal_format = (GLint)g->displaydata.internal_format;
+        GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
+        g->video_texture_unit = g->num_render_layer * 2;
+        glBindTexture(GL_TEXTURE_2D, g->video_texture_object);
+        glTexImage2D(GL_TEXTURE_2D,
+                     0,
+                     internal_format,
+                     g->displaydata.texture_width, g->displaydata.texture_height,
+                     0,
+                     pixelformat, 
+                     GL_UNSIGNED_BYTE, 
+                     NULL);  
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+        glBindTexture(GL_TEXTURE_2D, 0);                        // fix this too
+    }
 	if (g->enable_backbuffer) {
 		GLint internal_format;
 		GLenum format;
 		GLenum type;
 		DeterminePixelFormat(g->texture_pixel_format, &internal_format, &format, &type);
-		g->backbuffer_texture_unit = g->num_render_layer;
-		glGenTextures(1, &g->backbuffer_texture_object);
+        g->backbuffer_texture_unit = (g->num_render_layer * 2) + 1;
 		glBindTexture(GL_TEXTURE_2D, g->backbuffer_texture_object);
 		glTexImage2D(GL_TEXTURE_2D,
-		             0,             /* level */
+		             0,
 		             internal_format,
 		             source_width, source_height,
-		             0,             /* border */
+		             0,
 		             format,
 		             type,
 		             NULL);
@@ -774,6 +817,10 @@ void Graphics_DeallocateOffscreen(Graphics *g)
 	if (g->backbuffer_texture_object) {
 		glDeleteTextures(1, &g->backbuffer_texture_object);
 		g->backbuffer_texture_object = 0;
+	}
+    if (g->video_texture_object) {
+		glDeleteTextures(1, &g->video_texture_object);
+		g->video_texture_object = 0;
 	}
 	for (i = g->num_render_layer - 1; i >= 0; i--) {
 		RenderLayer_DeallocateOffscreen(&g->render_layer[i]);
@@ -828,8 +875,7 @@ void Graphics_SetUniforms(Graphics *g, double t,
 	CHECK_GL();
 }
 
-void Graphics_Render(Graphics *g)
-{
+void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams) {
 	int i;
 	GLuint prev_layer_texture_unit;
 	GLuint prev_layer_texture_object;
@@ -846,7 +892,12 @@ void Graphics_Render(Graphics *g)
 			glActiveTexture(GL_TEXTURE0 + g->backbuffer_texture_unit);
 			glBindTexture(GL_TEXTURE_2D, g->backbuffer_texture_object);
 		}
-		if (i == 0) {
+        if (g->enable_video) {
+			glUniform1i(p->attr.video, g->video_texture_unit);
+			glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
+			glBindTexture(GL_TEXTURE_2D, g->video_texture_object);
+		}
+        if (i == 0) {
 			/* primary layer */
 			glBindFramebuffer(GL_FRAMEBUFFER, p->framebuffer);
 			glActiveTexture(GL_TEXTURE0 + p->texture_unit);
@@ -886,12 +937,37 @@ void Graphics_Render(Graphics *g)
 		int width, height;
 		Graphics_GetSourceSize(g, &width, &height);
 		glActiveTexture(GL_TEXTURE0 + g->backbuffer_texture_unit);
-		glBindTexture(GL_TEXTURE_2D, g->backbuffer_texture_object); /* destination */
-		glBindFramebuffer(GL_FRAMEBUFFER, g->render_layer[g->num_render_layer-1].framebuffer); /* source */
+		glBindTexture(GL_TEXTURE_2D, g->backbuffer_texture_object);
+		glBindFramebuffer(GL_FRAMEBUFFER, g->render_layer[g->num_render_layer-1].framebuffer);
 
 		glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, width, height, 0);
 
-		glActiveTexture(GL_TEXTURE0);
+		glActiveTexture(GL_TEXTURE0 + g->backbuffer_texture_unit);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+    if (g->enable_video) {
+        //int texture_size;
+        //g->displaydata.bytes_per_pixel = 2;
+        //texture_size = g->displaydata.texture_width * g->displaydata.texture_height * g->displaydata.bytes_per_pixel;
+        //g->displaydata.texture = malloc(texture_size);
+        GLint internal_format = (GLint)g->displaydata.internal_format;
+        GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
+		glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
+		glBindTexture(GL_TEXTURE_2D, g->video_texture_object); 
+		glTexImage2D(GL_TEXTURE_2D,
+                     0,             /* level */
+                     internal_format,
+                     g->displaydata.texture_width, g->displaydata.texture_height,
+                     0,             /* border */
+                     pixelformat, 
+                     GL_UNSIGNED_BYTE, 
+                     sourceparams->captured.start);
+        //Swizzle mask: https://www.opengl.org/wiki/Texture#Swizzle_mask
+        // u, y1, v, y2
+        //GLint swizzleMask[] = {GL_GREEN, GL_RED, GL_BLUE, GL_ONE};           // RGB1 - y1,u,v
+        //GLint swizzleMask[] = {GL_ALPHA, GL_RED, GL_BLUE, GL_ONE};           // RGB2 - y2,u,v
+        //glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
+		glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -903,6 +979,11 @@ void Graphics_Render(Graphics *g)
 void Graphics_SetBackbuffer(Graphics *g, int enable)
 {
 	g->enable_backbuffer = enable;
+}
+
+void Graphics_SetVideo(Graphics *g, int enable)
+{
+	g->enable_video = enable;
 }
 
 void Graphics_SetNetParams(Graphics *g, int params)

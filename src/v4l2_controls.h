@@ -1,0 +1,1 @@
+void describe_device_controls(char * label, char * devicename, int device_fd);

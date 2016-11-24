@@ -6,6 +6,7 @@
 
 #define GL_GLEXT_PROTOTYPES
 #include <GLFW/glfw3.h>
+#include "v4l2.h"
 
 typedef enum {
     Graphics_LAYOUT_PRIMARY_FULLSCREEN,
@@ -48,6 +49,30 @@ typedef struct linked_addr {
 	GLuint addr;
 	struct linked_addr *next;
 } netin_addr;
+
+typedef struct displaydata {
+  int window_id; /* id of the display window  */
+  int window_width;  /* in pixels  */
+  int window_height; /* in pixels  */
+  int texture_width; /* may be window_width or next larger power of two  */
+  int texture_height;/* may be window_height or next larger power of two  */
+  int bytes_per_pixel; /* of the texture   */
+  int internal_format; /* of the texture data  */
+  int pixelformat;/* of the texture pixels  */
+  unsigned int texturename; /* of the primary texture   */
+  unsigned int u_texturename; /* of the u component of yuv420 texture   */
+  unsigned int v_texturename; /* of the v component of yuv420 texture   */
+  int primary_texture_unit; /* texture for non-planar formats  */
+  int u_texture_unit; /* texture unit for U component of YUV420  */
+  int v_texture_unit;/* texture unit for V component of YUV420  */
+  float t0[2]; /* texture coordinates  */
+  float t1[2];
+  float t2[2];
+  float t3[2];
+  void * texture; /* the buffer with current pixels  */
+  void * u_texture;
+  void * v_texture;
+} Displaydata_t;
 
 
 typedef struct Graphics_ Graphics;
@@ -96,7 +121,7 @@ void Graphics_SetUniforms(Graphics *g, double t,
                           netin_val *net_input_val,
                           double mouse_x, double mouse_y,
                           double randx, double randy);
-void Graphics_Render(Graphics *g);
+void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams);
 
 void Graphics_SetBackbuffer(Graphics *g, int enable);
 void Graphics_SetNetParams(Graphics *g, int params);
