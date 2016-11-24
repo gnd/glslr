@@ -29,7 +29,7 @@ A reference is to use PureData's object [netsend]. Currently only integer and fl
 
 ##Usage with video:
 
-**glslr** makes it possible to use experimental live video input from a V4L device. Currently only YUV422 devices are supported.
+**glslr** makes it possible to use experimental live video input from a V4L device. Currently only YUV422 devices are supported. SO far the image is raw YUV422 - conversion into RGBA is up to you in the shader.
 ```
 glslr --vdev [video device number] example.glsl
 ```
