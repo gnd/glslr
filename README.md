@@ -109,7 +109,7 @@ void main(void) {
 ```
 ##
 
-**glslr** is a fork of pijockey-sound (https://github.com/k-o-l-e-k-t-i-v/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of PiJockey by sharrow.  
+**glslr** is a fork of pijockey-sound (https://github.com/gnd/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of PiJockey by sharrow.  
 **glslr** was ported to x86, using GLFW. The Video4Linux capability was scrambled from **glutcam** by George Koharchik.  
 **glslr** is being occasionally developed (when preparing for a new performance) by gnd ♥ itchybit.org.
 
