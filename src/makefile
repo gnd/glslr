@@ -36,6 +36,8 @@ TARGET=glslr
 SOURCES =main.c
 SOURCES+=glslr.c
 SOURCES+=graphics.c
+SOURCES+=v4l2.c
+SOURCES+=v4l2_controls.c
 
 OBJECTS=$(subst .c,.o, $(SOURCES))
 
