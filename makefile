@@ -1,7 +1,8 @@
 # glslr GLSL livecoder
 
 TARGET=glslr
-VERSION=0.3
+VERSION=0.1
+DEBUG=yes
 
 all:
 	make -C src $@

@@ -16,4 +16,5 @@ void Glslr_Usage(void);
 int Glslr_GetLineCount(char *code, size_t size);
 void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *lines_included);
 
+
 #endif

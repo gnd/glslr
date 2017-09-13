@@ -97,7 +97,7 @@ void _get_device_capabilities(char * devicename, int device_fd,  Videocapabiliti
     _xioctl(device_fd, VIDIOC_QUERYCAP, &(capabilities->capture));
 
     fprintf(stderr, "Info: '%s' connects to %s using the %s driver\n", devicename, capabilities->capture.card, capabilities->capture.driver);
-    _describe_capture_capabilities("Device has the following capabilities\n",  &capabilities->capture);
+    _describe_capture_capabilities("Device has the following capabilities\n", &capabilities->capture);
     describe_device_controls("Device has the following controls available\n", devicename, device_fd);
     _collect_supported_image_formats(device_fd, capabilities);
 
@@ -197,8 +197,8 @@ void print_supported_framesizes(int device_fd, __u32 pixel_format, char * label)
 }
 
 
-void _describe_capture_capabilities(char *errstring, struct v4l2_capability * cap) {
-    fprintf(stderr, "%s\n", errstring);
+void _describe_capture_capabilities(const char *message, struct v4l2_capability * cap) {
+    fprintf(stderr, "%s\n", message);
     fprintf(stderr, "Device: '%s' Driver: '%s'\n", cap->card, cap->driver);
     if (V4L2_CAP_VIDEO_CAPTURE & cap->capabilities) {
         fprintf(stderr, "Device supports video capture.\n");
@@ -358,9 +358,9 @@ int _request_video_buffer_access(int device_fd, enum v4l2_memory memory) {
     
     struct v4l2_requestbuffers request;
     int status, retval;
-    char * mmap_error =  "Error: video device doesn't support memory mapping\n";
-    char * userptr_error= "Error: video device doesn't support user pointer I/O\n";
-    char * errstring;
+    const char * mmap_error =  "Error: video device doesn't support memory mapping\n";
+    const char * userptr_error= "Error: video device doesn't support user pointer I/O\n";
+    const char * errstring;
   
     memset(&request, 0, sizeof(request));
     request.count = MAX_VIDEO_BUFFERS;
@@ -475,34 +475,35 @@ int _stop_streaming(Sourceparams_t * sourceparams) {
 
 
 void capture_video_frame(Sourceparams_t * sourceparams, int * nbytesp) {
-    void * retval;
-    retval = next_device_frame(sourceparams, nbytesp);
+    //void * retval;
+    //retval = next_device_frame(sourceparams, nbytesp);
     //return (retval);
+    next_device_frame(sourceparams, nbytesp);
 }
 
 
 void next_device_frame(Sourceparams_t * sourceparams, int * nbytesp) {
     int nbytes;
-    void *datap;
+    //void *datap;
     int data_ready;
     data_ready = wait_for_input(sourceparams->fd , DATA_TIMEOUT_INTERVAL);
   
     if (-1 == data_ready) {
         /* we had an error waiting on data  */
-        datap = NULL;
+        //datap = NULL;
         *nbytesp = -1;
     } else if (0 == data_ready) {
         /* no data available in timeout interval  */
-        datap = NULL;
+        //datap = NULL;
         *nbytesp = 0;
     } else {                            
         // ONLY MMAP SUPPORTED RIGHT NOW - see the original glutcam next_device_frame for reference
         nbytes = harvest_mmap_device_buffer(sourceparams);
         if (0 < nbytes) {
-            datap = sourceparams->captured.start;
+            //datap = sourceparams->captured.start;
             *nbytesp = nbytes;
         } else {
-            datap = NULL;
+            //datap = NULL;
             *nbytesp = nbytes;
 	    }
     }

@@ -125,7 +125,7 @@ static void CheckGLError(const char *file, int line, const char *func)
 
 void handleError(const char *message, int _exitStatus)
 {
-	fprintf(stderr, message);
+	fprintf(stderr, "%s", message);
 	exit(_exitStatus);
 }
 
@@ -197,6 +197,7 @@ static void PrintProgramLog(const char *message, GLuint program)
 {
 	GLchar build_log[512];
 	glGetProgramInfoLog(program, sizeof(build_log), NULL, build_log);
+    printf("%s %d: %s\n", message, program, build_log);
 }
 
 
@@ -360,7 +361,6 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 
 	CHECK_GL();
 	glCompileShader(layer->fragment_shader);
-    FILE *fp;
 	glGetShaderiv(layer->fragment_shader, GL_COMPILE_STATUS, &param);
 	if (param != GL_TRUE) {
 		PrintShaderLog("fragment_shader", layer->fragment_shader, layer->attr.lines_before_include, layer->attr.lines_included);
@@ -763,7 +763,7 @@ int Graphics_AllocateOffscreen(Graphics *g)
 		                              g->texture_wrap_mode);
 		/* TODO: handle error */
 	}
-    glGenTextures(2, &g->textures);
+    glGenTextures(2, g->textures);
     g->video_texture_object = g->textures[0];
     g->backbuffer_texture_object = g->textures[1];
     if (g->enable_video) {

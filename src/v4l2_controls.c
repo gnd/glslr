@@ -17,10 +17,10 @@
 #include "v4l2_controls.h"
 
 static void enumerate_menu (char * label, int fd,  struct v4l2_queryctrl queryctrl);
-void explain_control_type(char * label, struct v4l2_queryctrl queryctrl, int fd);
+void explain_control_type(const char * label, struct v4l2_queryctrl queryctrl, int fd);
 
 
-void describe_device_controls(char * label, char * devicename, int device_fd) {
+void describe_device_controls(const char * label, char * devicename, int device_fd) {
     struct v4l2_queryctrl queryctrl;
     fprintf(stderr, "%s", label);
     fprintf(stderr, " using device file %s\n", devicename);
@@ -79,7 +79,7 @@ static void enumerate_menu (char * label, int fd, struct v4l2_queryctrl queryctr
 
 
 
-void explain_control_type(char * label, struct v4l2_queryctrl queryctrl, int fd) { 
+void explain_control_type(const char * label, struct v4l2_queryctrl queryctrl, int fd) { 
     fprintf(stderr, "%s ", label);
     fprintf (stderr, "Control %s:", queryctrl.name);
 

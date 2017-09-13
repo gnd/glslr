@@ -37,7 +37,6 @@ typedef enum {
     Graphics_WRAP_MODE_ENUMS
 } Graphics_WRAP_MODE;
 
-
 // net_input values
 typedef struct linked_val {
 	float val;
@@ -65,10 +64,8 @@ typedef struct displaydata {
 typedef struct Graphics_ Graphics;
 typedef struct RenderLayer_ RenderLayer;
 
-
 void Graphics_HostInitialize(void);
 void Graphics_HostDeinitialize(void);
-
 
 void *RenderLayer_GetAux(RenderLayer *layer);
 int RenderLayer_UpdateShaderSource(RenderLayer *layer,
@@ -78,7 +75,9 @@ int RenderLayer_UpdateShaderSource(RenderLayer *layer,
 
 Graphics *Graphics_Create(Graphics_LAYOUT layout,
                           int scaling_numer, int scaling_denom);
+                          
 void Graphics_Delete(Graphics *g);
+void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams);
 
 int Graphics_AppendRenderLayer(Graphics *g,
                                const char *source,
@@ -91,26 +90,22 @@ void Graphics_SetOffscreenPixelFormat(Graphics *g, Graphics_PIXELFORMAT pixel_fo
 void Graphics_SetOffscreenInterpolationMode(Graphics *g, Graphics_INTERPOLATION_MODE interpolation_mode);
 void Graphics_SetOffscreenWrapMode(Graphics *g, Graphics_WRAP_MODE wrap_mode);
 int Graphics_ApplyOffscreenChange(Graphics *g);
-
 void Graphics_SetWindowScaling(Graphics *g, int numer, int denom);
 int Graphics_ApplyWindowScalingChange(Graphics *g);
-
 void Graphics_SetupViewport(Graphics *g);
 void Graphics_SetLayout(Graphics *g, Graphics_LAYOUT layout, int width, int height);
 void Graphics_setWindowSize(int _width, int _height);
-
 int Graphics_AllocateOffscreen(Graphics *g);
 void Graphics_DeallocateOffscreen(Graphics *g);
 RenderLayer *Graphics_GetRenderLayer(Graphics *g, int layer_index);
 int Graphics_BuildRenderLayer(Graphics *g, int layer_index);
-
 void Graphics_SetUniforms(Graphics *g, double t,
                           netin_val *net_input_val,
                           double mouse_x, double mouse_y,
                           double randx, double randy);
 void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams);
-
 void Graphics_SetBackbuffer(Graphics *g, int enable);
+void Graphics_SetVideo(Graphics *g, int enable);
 void Graphics_SetNetParams(Graphics *g, int params);
 Graphics_LAYOUT Graphics_GetCurrentLayout(Graphics *g);
 Graphics_LAYOUT Graphics_GetLayout(Graphics_LAYOUT layout, int forward);

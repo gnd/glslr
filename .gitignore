@@ -1,4 +1,6 @@
 *.o
 *.glsl
 *.swp
+*.txt
+*.sh
 glslr
