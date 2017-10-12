@@ -16,7 +16,6 @@ CFLAGS += -DPLATFORM_LINUX $(shell pkg-config --cflags glfw3 glu gl)
 
 LIBS+=-lGLESv2
 LIBS+=-lglfw
-#LIBS+=-lglu
 LIBS+=-lGL
 LIBS+=-lX11
 LIBS+=-lXrandr
@@ -30,6 +29,8 @@ LIBS+=-lXdamage
 LIBS+=-lm
 LIBS+=-lpthread
 LIBS+=-ldl
+LIBS+=-lcurl
+LIBS+=-ljpeg
 
 TARGET=glslr
 
@@ -38,6 +39,7 @@ SOURCES+=glslr.c
 SOURCES+=graphics.c
 SOURCES+=v4l2.c
 SOURCES+=v4l2_controls.c
+SOURCES+=sony.c
 
 OBJECTS=$(subst .c,.o, $(SOURCES))
 

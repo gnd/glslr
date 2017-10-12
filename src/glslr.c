@@ -24,8 +24,9 @@
 #include "config.h"
 #include "base.h"
 #include "glslr.h"
+#include "sony.h"
 #include "graphics.h"
-//#include "v4l2.h"
+#include <stdbool.h>
 #include "v4l2_controls.h"
 #include "util_textfile.h"
 
@@ -59,9 +60,12 @@ struct Glslr_ {
 	Graphics_LAYOUT layout_backup;
     Sourceparams_t sourceparams;
     Videocapabilities_t capabilities;
+    JpegMemory_t mem;
+    JpegDec_t jpeg_dec;
 	int is_fullscreen;
 	int use_backbuffer;
     int use_video;
+    int use_sony;
 	int use_tcp;
 	int use_net;
 	int port;
@@ -103,6 +107,11 @@ static void sockerror(const char *s);
 static void x_closesocket(int fd);
 static void dopoll(Glslr *gx);
 #define BUFSIZE 8192
+
+struct JpegMemory {
+    char *memory;
+    size_t size;
+};
 
 #define GXDebug(gx, printf_arg) ((gx)->verbose.debug ? (printf printf_arg) : 0)
 
@@ -355,10 +364,25 @@ int Glslr_Construct(Glslr *gx)
 	}
     
     memset(&gx->sourceparams, 0, sizeof(gx->sourceparams));
-
+    memset(&gx->jpeg_dec, 0, sizeof(gx->jpeg_dec));
+    gx->jpeg_dec.x = 0;
+    gx->jpeg_dec.y = 0;
+    gx->jpeg_dec.bpp = 0;
+    gx->jpeg_dec.data = NULL;
+    gx->jpeg_dec.size = 0;
+    gx->jpeg_dec.channels = 0;
+    
+    memset(&gx->mem, 0, sizeof(gx->mem));
+    gx->mem.memory = malloc(1);
+    gx->mem.size = 0;
+    gx->mem.header_found = false;
+    gx->mem.size_string = malloc(6);
+    gx->mem.jpeg_size = 0;
+            
 	gx->is_fullscreen = 0;
 	gx->use_backbuffer = 0;
     gx->use_video = 0;
+    gx->use_sony = 0;
 	gx->use_tcp = 0;
 	gx->use_net = 0;
 	gx->port = 6666;
@@ -464,6 +488,27 @@ static int Glslr_SwitchVideo(Glslr *gx)
 	return Graphics_ApplyOffscreenChange(gx->graphics);
 }
 
+
+static int Glslr_SwitchSony(Glslr *gx)
+{
+	gx->use_sony ^= 1;
+	Graphics_SetSony(gx->graphics, gx->use_sony);
+    // this might be unnecessary 
+    /*
+    if (gx->use_sony == 1) {
+            // pozriet co presne robia tie dve funkcie 
+            
+            //_enqueue_mmap_buffers(&gx->sourceparams);
+            //_start_streaming(&gx->sourceparams);
+    } else {
+            // tutok zmenit nejak glob premennu na 1 (pripocitava sa ku vracanej hodnote size)
+            // _stop_streaming(&gx->sourceparams);
+    }
+    */ 
+	return Graphics_ApplyOffscreenChange(gx->graphics);
+}
+
+
 /* currently not working 
 static int Glslr_ChangeScaling(Glslr *gx, int add)
 {
@@ -554,7 +599,8 @@ static void Glslr_UpdateMousePosition(Glslr *gx)
 		}
 		if (err != 0) {
 			if (err == EWOULDBLOCK || err == EAGAIN) {
-				// ok... try again next time
+				// ok... try again next time            chunk.memory = malloc(1);
+            chunk.size = 0;
 				break;
 			} else {
 				printf("error on mouse-read: code %d(%s)\n", err, strerror(err));
@@ -605,7 +651,7 @@ static void Glslr_Render(Glslr *gx)
 {
     int framesize;
 	if (gx->verbose.render_time) {
-		double t, vs, ms;
+		double t, vs, ms, ss;
 		t = GetCurrentTimeInMilliSecond();
         if (gx->use_video == 1) {
             capture_video_frame(&gx->sourceparams, &framesize);
@@ -613,18 +659,44 @@ static void Glslr_Render(Glslr *gx)
         } else {
             vs = t;
         }
-		Graphics_Render(gx->graphics, &gx->sourceparams);
+        if (gx->use_sony == 1) {
+            printf("Going to enter getJpegData\n");
+            // retrieve data from the cam
+            gx->mem.memory = malloc(1);
+            gx->mem.size = 0;
+            getJpegData(&gx->mem);
+    
+            printf("Data retrieved, loading into libjpeg\n");
+            // load it into char* data
+            LoadJPEG(&gx->mem.memory[136], &gx->jpeg_dec, &gx->mem.jpeg_size);
+            printf("Jpeg done\n");
+            
+            // do something
+     
+            free(gx->mem.memory);
+            ss = GetCurrentTimeInMilliSecond();
+        } else {
+            ss = t;
+        }
+		Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
 		ms = GetCurrentTimeInMilliSecond() - vs;
         if (gx->use_video == 1) {
             printf("render time: %.1f ms (%.0f fps) / video time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, vs-t, 1000.0 / (vs-t));
+        } else if (gx->use_sony == 1) {
+            printf("render time: %.1f ms (%.0f fps) / sony time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, ss-t, 1000.0 / (ss-t));
         } else {
             printf("render time: %.1f ms (%.0f fps)\r", ms, 1000.0 / ms);
         }
+        
 	} else {
         if (gx->use_video == 1) {
             capture_video_frame(&gx->sourceparams, &framesize);
         }
-		Graphics_Render(gx->graphics, &gx->sourceparams);
+        if (gx->use_sony == 1) {
+            // get the sony picture here
+            // capture_video_frame(&gx->sourceparams, &framesize);
+        }
+		Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
 	}
 }
 
@@ -656,6 +728,7 @@ static void PrintHelp(void)
 	printf("  [ or ]   offscreen scaling (defunct)\n");
 	printf("  b        backbuffer ON/OFF\n");
     printf("  v        video input ON/OFF\n");
+    printf("  s        sony input ON/OFF\n");
 	printf("  q        exit\n");
 }
 
@@ -730,6 +803,10 @@ static void Glslr_MainLoop(Glslr *gx)
 		case '[':
 			// defunct
 			//Glslr_ChangeScaling(gx, -1);
+			break;
+        case 's':
+			Glslr_SwitchSony(gx);
+			printf("Sony ACH3 input %s\n", gx->use_sony ? "ON": "OFF");
 			break;
 		case 't':
 		case 'T':
@@ -1032,4 +1109,3 @@ int Glslr_Main(Glslr *gx)
 	Glslr_MainLoop(gx);
 	return EXIT_SUCCESS;
 }
-

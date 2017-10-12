@@ -7,6 +7,8 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GLFW/glfw3.h>
 #include "v4l2.h"
+#include "sony.h"
+
 
 typedef enum {
     Graphics_LAYOUT_PRIMARY_FULLSCREEN,
@@ -103,9 +105,10 @@ void Graphics_SetUniforms(Graphics *g, double t,
                           netin_val *net_input_val,
                           double mouse_x, double mouse_y,
                           double randx, double randy);
-void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams);
+void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg_dec);
 void Graphics_SetBackbuffer(Graphics *g, int enable);
 void Graphics_SetVideo(Graphics *g, int enable);
+void Graphics_SetSony(Graphics *g, int enable);
 void Graphics_SetNetParams(Graphics *g, int params);
 Graphics_LAYOUT Graphics_GetCurrentLayout(Graphics *g);
 Graphics_LAYOUT Graphics_GetLayout(Graphics_LAYOUT layout, int forward);
