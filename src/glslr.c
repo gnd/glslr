@@ -410,7 +410,7 @@ int Glslr_Construct(Glslr *gx)
 	gx->is_fullscreen = 0;
 	gx->use_backbuffer = 0;
     gx->use_video = 0;
-    //GND gx->use_sony = 0;
+    gx->use_sony = 0;
 	gx->use_tcp = 0;
 	gx->use_net = 0;
 	gx->port = 6666;
@@ -552,7 +552,6 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 	int i, lines_before, lines_included;
 	RenderLayer *layer;
 
-  //GND printf("-- Entering rebuild\n");
 	for (i = 0; (layer = Graphics_GetRenderLayer(gx->graphics, i)) != NULL; i++) {
 		time_t t;
 		SourceObject *so;
@@ -584,15 +583,12 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 				GXDebug(gx, ("update: %s\n", so->path));
                 // here comes include extend function
                 Glslr_IncludeAdditionalCode(code, &len, &lines_before, &lines_included);
-				//GND printf("-- Going UpdateShaderSource\n");
 				RenderLayer_UpdateShaderSource(layer, code, (int)len);
 				so->last_modify_time = t;
-				//GND printf("-- Going BuildShaderSource\n");
 				Graphics_BuildRenderLayer(gx->graphics, i);
 			}
 		}
 	}
-	//GND printf("-- Exiting rebuild\n");
 	return 0;
 }
 
@@ -654,43 +650,23 @@ static void Glslr_UpdateMousePosition(Glslr *gx)
 
 static void Glslr_SetUniforms(Glslr *gx)
 {
-	//GND printf("-- Entering SetUniforms\n");
 	double t;
 	double mouse_x, mouse_y;
 	int width, height;
+
 	t = GetCurrentTimeInMilliSecond() - gx->time_origin;
-	//GND printf("-- GetWindowSize starts\n");
 	Graphics_GetWindowSize(gx->graphics, &width, &height);
-	//GND printf("-- GetWindowSize done\n");
 	mouse_x = (double)gx->mouse.x / width;
 	mouse_y = (double)gx->mouse.y / height;
 	//printf("mousex: %d\n", gx->mouse.x);
 
-  //GND printf("-- Setting uniforms\n");
 	Graphics_SetUniforms(gx->graphics, t / 1000.0,
 	                     gx->net_input_val,
 	                     mouse_x, mouse_y, drand48(), drand48());
-	//GND printf("-- Exiting SetUniforms\n");
 }
 
 static void Glslr_Render(Glslr *gx)
 {
-    //GND printf("-- Starting the GLSLR_RENDER function\n");
-		/*
-    printf("-- i see gx->mem.image_read: %d\n", gx->mem.image_read);
-    if (!gx->mem.image_swapping) {
-        printf("-- No swapping detected\n");
-        printf("-- Identifier is %d\n", gx->mem.identifier);
-        if (gx->mem.image_read) {
-            printf("-- Do i see the first char: %c ?\n", gx->mem.memory[12]);
-        }
-        printf("-- ro_jpeg_size is %ln\n", gx->mem.ro_jpeg_size);
-        printf("-- address of ro_jpeg_size is %p\n", &gx->mem.ro_jpeg_size);
-        printf("-- size of ro_jpeg_size is %lu\n", sizeof(gx->mem.ro_jpeg_size));
-        printf("-- value of ro_jpeg_size is %ld\n", *gx->mem.ro_jpeg_size);
-     }
-		 */
-
     int framesize;
 	if (gx->verbose.render_time) {
 		double t, vs, ms, ss;
@@ -703,39 +679,33 @@ static void Glslr_Render(Glslr *gx)
         }
         if (gx->use_sony == 1) {
             if (!gx->sony_thread_active) {
-                //GND printf("-- Creating a new thread\n");
                 //pthread_create(&gx->thread[0], NULL, getJpegDataThread, gx->curl_handle);
                 pthread_create(&gx->thread[0], NULL, getJpegDataThreadNext, &gx->mem);
                 gx->sony_thread_active = true;
             }
         }
-        //if (gx->use_sony == 1) {
-            //GND printf("-- Testing for image_read\n");
+		// TODO move to callback func
+        if (gx->use_sony == 1) {
             if (gx->mem.image_read == true) {
-                //GND printf("-- image read: %d - Data retrieved, loading into libjpeg\n", gx->mem.image_read);
                 if (!gx->mem.image_swapping) {
-                    //GND printf("-- No swapping so we LoadJPEG of the size %lu\n", *gx->mem.ro_jpeg_size);
                     LoadJPEG(&gx->mem.ro_memory[136], &gx->jpeg_dec, *gx->mem.ro_jpeg_size);
-                    //GND printf("-- LoadJPEG done\n");
                 }
                 gx->mem.image_read = false;
             } else {
-							//GND printf("-- Nope, image_read is %d\n", gx->mem.image_read);
-						}
+			}
             ss = GetCurrentTimeInMilliSecond();
-        //}
+        }
         if (gx->use_sony == 0) {
             ss = t;
         }
-        //GND printf("-- going to render\n");
-				Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
-				//GND printf("-- render finished\n");
-				ms = GetCurrentTimeInMilliSecond() - vs;
-				//TODO - change the line return to \r after sony debug finished
+		Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
+		ms = GetCurrentTimeInMilliSecond() - vs;
+
+		//TODO - change the line return to \r after sony debug finished
         if (gx->use_video == 1) {
-            printf("-- render time: %.1f ms (%.0f fps) / video time:  %.1f ms (%.0f fps)  \n", ms, 1000.0 / ms, vs-t, 1000.0 / (vs-t));
+            printf("-- render time: %.1f ms (%.0f fps) / video time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, vs-t, 1000.0 / (vs-t));
         } else if (gx->use_sony == 1) {
-            printf("-- render time: %.1f ms (%.0f fps) / sony time:  %.1f ms (%.0f fps)  \n", ms, 1000.0 / ms, ss-t, 1000.0 / (ss-t));
+            printf("-- render time: %.1f ms (%.0f fps) / sony time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, ss-t, 1000.0 / (ss-t));
         } else {
             printf("-- render time: %.1f ms (%.0f fps)\r", ms, 1000.0 / ms);
         }
@@ -744,13 +714,8 @@ static void Glslr_Render(Glslr *gx)
         if (gx->use_video == 1) {
             capture_video_frame(&gx->sourceparams, &framesize);
         }
-        if (gx->use_sony == 1) {
-            // get the sony picture here
-            // capture_video_frame(&gx->sourceparams, &framesize);
-        }
 		Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
 	}
-    //printf("Exiting the GLSLR Render function, i can see image_read is %d the ro_jpeg_size is %lu---------\n", gx->mem.image_read, *gx->mem.ro_jpeg_size);
 }
 
 static void Glslr_AdvanceFrame(Glslr *gx)
@@ -760,29 +725,17 @@ static void Glslr_AdvanceFrame(Glslr *gx)
 
 static int Glslr_Update(Glslr *gx)
 {
-	//GND printf("- starting glslr_update, polling events\n");
 	glfwPollEvents();
-	//GND printf("- glslr_update, rebuilding shaders\n");
 	if (Glslr_ReloadAndRebuildShadersIfNeed(gx)) {
 		return 1;
 	}
-	//GND printf("- glslr_update, rebuilding done\n");
-	//GND printf("- glslr_update, trying if net\n");
 	if (gx->use_net) {
-		//GND printf("- glslr_update, polling net\n");
 		dopoll(gx);
 	}
-	//GND printf("- glslr_update, setting uniforms\n");
 	//Glslr_UpdateMousePosition(gx);
 	Glslr_SetUniforms(gx);
-    //GND printf("- glslr_update, before glslr_render\n");
 	Glslr_Render(gx);
-    //printf("going to advance frame, i can see the ro_jpeg_size is: %lu\n", *gx->mem.ro_jpeg_size);
-		//GND printf("- glslr_update, after glslr_render\n");
-		//GND printf("- glslr_update, before glslr_AdvanceFrame\n");
 	Glslr_AdvanceFrame(gx);
-		//GND printf("- glslr_update, after glslr_AdvanceFrame\n");
-		//GND printf("- glslr_update, exiting glslr_update\n\n\n");
 	return 0;
 }
 
@@ -844,7 +797,7 @@ static int Glslr_PrepareMainLoop(Glslr *gx)
     	const char *fmt = "/dev/video%d";
     	snprintf(&gx->video_device[0], 12, fmt, gx->video_dev_num);
     	printf("Initializing video device: %s\n", gx->video_device);
-			//TODO - try catch this
+		//TODO - try catch this
     	init_device_and_buffers(gx->video_device, &(gx->sourceparams), &(gx->capabilities));
 		}
     Graphics_InitDisplayData(gx->graphics, &(gx->sourceparams));

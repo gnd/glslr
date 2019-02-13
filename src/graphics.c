@@ -880,17 +880,13 @@ void Graphics_SetUniforms(Graphics *g, double t,
                           double mouse_x, double mouse_y,
                           double randx, double randy)
 {
-  //GND //GND printf("--- Entering Graphics_SetUniforms\n");
 	int i,j;
 	int width, height;
 	netin_val *val=NULL;
 	netin_addr *addr=NULL;
 
-  //GND printf("--- Check_GL (1)\n");
 	CHECK_GL();
-  //GND printf("--- Getting SourceSize\n");
 	Graphics_GetSourceSize(g, &width, &height);
-  //GND printf("--- Iterating over layers (A2G >)\n");
 	for (i = 0; i < g->num_render_layer; i++) {
 		RenderLayer *p;
 		p = &g->render_layer[i];
@@ -914,22 +910,18 @@ void Graphics_SetUniforms(Graphics *g, double t,
 
 		glUseProgram(0);
 	}
- //GND  printf("--- Check_GL (2)\n");
 	CHECK_GL();
-  //GND printf("--- Exiting Graphics_SetUniforms\n");
 }
 
 void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg_dec) {
 	int i;
 	GLuint prev_layer_texture_unit;
 	GLuint prev_layer_texture_object;
-  //GND printf("--- Entering render\n");
 
 	CHECK_GL();
 	prev_layer_texture_unit = 0;
 	prev_layer_texture_object = 0;
-  //GND printf("--- Iterate start (A2G >)\n");
-	for (i = 0; i < g->num_render_layer; i++) {
+    for (i = 0; i < g->num_render_layer; i++) {
 		RenderLayer *p;
 		p = &g->render_layer[i];
 		glUseProgram(p->program);
@@ -983,9 +975,7 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		prev_layer_texture_unit = p->texture_unit;
 		prev_layer_texture_object = p->texture_object;
 	}
-  //GND printf("--- Iterate end\n");
 
-  //GND printf("--- Checking for enable_backbuffer (A2G >)\n");
 	if (g->enable_backbuffer) {
 		int width, height;
 		Graphics_GetSourceSize(g, &width, &height);
@@ -999,8 +989,7 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
- //GND  printf("--- Checking for enable_video (A2G >)\n");
-  if (g->enable_video) {
+    if (g->enable_video) {
         //int texture_size;
         //g->displaydata.bytes_per_pixel = 2;
         //texture_size = g->displaydata.texture_width * g->displaydata.texture_height * g->displaydata.bytes_per_pixel;
@@ -1025,14 +1014,12 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
-    //GND printf("--- Checking for enable_sony (A2G >)\n");
     if (g->enable_sony) {
-      //GND printf("--- Running sony render part now\n");
         GLint internal_format = (GLint)g->displaydata.internal_format;
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
 		glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, g->sony_texture_object);
-    //GND printf("--- Going to access jpeg_data now\n");
+        // TODO add mutex lock here
 		glTexImage2D(GL_TEXTURE_2D,
                      0,             /* level */
                      internal_format,
@@ -1041,15 +1028,12 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
                      pixelformat,
                      GL_UNSIGNED_BYTE,
                      jpeg_dec->data);
-    //GND printf("--- jpeg_data accessed\n");
 		glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	CHECK_GL();
-
 	glfwSwapBuffers(g->window);
-  //GND printf("--- Exiting render\n");
 }
 
 void Graphics_SetBackbuffer(Graphics *g, int enable)
@@ -1074,9 +1058,7 @@ void Graphics_SetNetParams(Graphics *g, int params)
 
 void Graphics_GetWindowSize(Graphics *g, int *_width, int *_height)
 {
-  //GND printf("--- Entering GetWindowSize (A2G >)\n");
 	glfwGetWindowSize(g->window, _width, _height);
-  //GND printf("--- Exiting GetWindowSize\n");
 }
 
 void Graphics_GetSourceSize(Graphics *g, int *width, int *height)
@@ -1140,14 +1122,10 @@ static void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format,
 
 void Graphics_getWindowWidth(Graphics *g, int *width)
 {
-  //GND printf("Entering getwindowWidth (A2G >)\n");
 	*width = g->viewport.z;
-  //GND printf("Exiting getwindowWidth\n");
 }
 
 void Graphics_getWindowHeight(Graphics *g, int *height)
 {
-  //GND printf("Entering getwindowHeight (A2G >)\n");
 	*height = g->viewport.w;
-  //GND printf("Exiting getwindowHeight\n");
 }
