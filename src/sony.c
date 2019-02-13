@@ -5,10 +5,8 @@
 #include <curl/curl.h>
 #include <jpeglib.h>
 #include <jerror.h>
+#include <pthread.h>
 #include "sony.h"
-
-// TODO move this to the headerfile
-static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void* userp);
 
 void *getJpegData(void *memory) {
     JpegMemory_t *mem = (JpegMemory_t *)memory;
@@ -71,7 +69,7 @@ void LoadJPEG(const unsigned char * imgdata, JpegDec_t* jpeg_dec, size_t jpeg_si
   jpeg_read_header(&info, TRUE);
   info.do_fancy_upsampling = FALSE;
   // Free previous jpeg_dec memory (if any)
-  free(jpeg_dec->data)
+  free(jpeg_dec->data);
 
   jpeg_start_decompress(&info);
   jpeg_dec->x = info.output_width;

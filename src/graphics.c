@@ -180,7 +180,8 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
         fprintf(stderr, "BUILDLOG: %s\n", build_log);
         a = strstr(build_log, ":");
         aa = strstr(build_log, "(");
-        line_num = strtol(a+1,aa,10);
+        // WTF do u think you are doing here ?? srly..
+        line_num = strtol(a+1,NULL,10);
         //fprintf(stderr, "linenum: %d\n", line_num);
         if (line_num > (before + included)) {
             line_num = line_num - included + 1;

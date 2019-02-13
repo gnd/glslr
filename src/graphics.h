@@ -7,8 +7,17 @@
 #define GL_GLEXT_PROTOTYPES
 #include <GLFW/glfw3.h>
 #include "v4l2.h"
-#include "sony.h"
+//#include "sony.h"
 
+// TODO how not to define this in every header ?
+typedef struct JpegDec_s {
+        unsigned long x;
+        unsigned long y;
+        unsigned short int bpp;
+        unsigned char* data;
+        unsigned long size;
+        int channels;
+} JpegDec_t;
 
 typedef enum {
     Graphics_LAYOUT_PRIMARY_FULLSCREEN,
@@ -77,7 +86,7 @@ int RenderLayer_UpdateShaderSource(RenderLayer *layer,
 
 Graphics *Graphics_Create(Graphics_LAYOUT layout,
                           int scaling_numer, int scaling_denom);
-                          
+
 void Graphics_Delete(Graphics *g);
 void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams);
 

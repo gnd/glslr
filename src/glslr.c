@@ -3,39 +3,8 @@
 +- fix tcp receive
 +- reactivate mouse input
 +*/
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <assert.h>
-#include <time.h>
-#include <errno.h>
-
-#include <linux/input.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-#include <fcntl.h>
-#include <termios.h>
-
-#include "config.h"
-#include "base.h"
 #include "glslr.h"
-#include "graphics.h"
-#include <stdbool.h>
-#include <pthread.h>
-#include <curl/curl.h>
-#include "v4l2_controls.h"
-#include "util_textfile.h"
 
-/* pdreceive includes */
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <netdb.h>
 #define SOCKET_ERROR -1
 
 
@@ -48,6 +17,7 @@
 #define MIN(a, b) (((a) <  (b)) ? (a) : (b))
 #define CLAMP(min, x, max) MIN(MAX(min, x), max)
 
+// TODO move this shit to glslr.h
 
 typedef struct {
 	const char *path;
@@ -55,6 +25,7 @@ typedef struct {
     time_t last_modify_time;
 } SourceObject;
 
+JpegDec_t jpeg_dec;
 
 struct Glslr_ {
 	Graphics *graphics;
@@ -62,7 +33,6 @@ struct Glslr_ {
     Sourceparams_t sourceparams;
     Videocapabilities_t capabilities;
     JpegMemory_t mem;
-    JpegDec_t jpeg_dec;
     CURL *curl_handle;
     pthread_t thread[1];
     bool sony_thread_active;
@@ -112,14 +82,9 @@ static void x_closesocket(int fd);
 static void dopoll(Glslr *gx);
 #define BUFSIZE 8192
 
-struct JpegMemory {
-    char *memory;
-    size_t size;
-};
-
 #define GXDebug(gx, printf_arg) ((gx)->verbose.debug ? (printf printf_arg) : 0)
 
-
+pthread_mutex_t video_mutex;
 
 
 
@@ -372,28 +337,6 @@ int Glslr_Construct(Glslr *gx)
 	}
 
     memset(&gx->sourceparams, 0, sizeof(gx->sourceparams));
-    memset(&gx->jpeg_dec, 0, sizeof(gx->jpeg_dec));
-    gx->jpeg_dec.x = 0;
-    gx->jpeg_dec.y = 0;
-    gx->jpeg_dec.bpp = 0;
-    gx->jpeg_dec.data = NULL;
-    gx->jpeg_dec.size = 0;
-    gx->jpeg_dec.channels = 0;
-
-    memset(&gx->mem, 0, sizeof(gx->mem));
-    gx->mem.memory = malloc(1);
-    gx->mem.ro_memory = malloc(1);
-    gx->mem.size = 0;
-    gx->mem.header_found = false;
-    gx->mem.size_string = malloc(6);
-    gx->mem.jpeg_size = 0;
-    gx->mem.ro_jpeg_size = malloc(sizeof(size_t));
-   *gx->mem.ro_jpeg_size = 666;
-    gx->mem.image_read = false;
-    gx->mem.image_getting = false;
-    gx->mem.image_swapping = false;
-    gx->sony_thread_active = false;
-    gx->mem.identifier = 0;
 
     // setup libcurl
     curl_global_init(CURL_GLOBAL_ALL);
@@ -427,6 +370,22 @@ int Glslr_Construct(Glslr *gx)
 	gx->verbose.debug = 0;
 	gx->scaling.numer = scaling_numer;
 	gx->scaling.denom = scaling_denom;
+
+	memset(&gx->mem, 0, sizeof(gx->mem));
+	gx->mem.memory = malloc(1);
+	gx->mem.size = 0;
+	gx->mem.header_found = false;
+	gx->mem.size_string = malloc(6);
+	gx->mem.jpeg_size = 0;
+
+	memset(&jpeg_dec, 0, sizeof(jpeg_dec));
+	jpeg_dec.x = 0;
+	jpeg_dec.y = 0;
+	jpeg_dec.bpp = 0;
+	jpeg_dec.data = NULL;
+	jpeg_dec.size = 0;
+	jpeg_dec.channels = 0;
+
 	return 0;
 }
 
@@ -667,9 +626,11 @@ static void Glslr_SetUniforms(Glslr *gx)
 
 static void Glslr_Render(Glslr *gx)
 {
+	// TODO check the flow, seems a bit retarded coz of the render time computation
+
     int framesize;
 	if (gx->verbose.render_time) {
-		double t, vs, ms, ss;
+		double t, vs, ms;
 		t = GetCurrentTimeInMilliSecond();
         if (gx->use_video == 1) {
             capture_video_frame(&gx->sourceparams, &framesize);
@@ -677,35 +638,12 @@ static void Glslr_Render(Glslr *gx)
         } else {
             vs = t;
         }
-        if (gx->use_sony == 1) {
-            if (!gx->sony_thread_active) {
-                //pthread_create(&gx->thread[0], NULL, getJpegDataThread, gx->curl_handle);
-                pthread_create(&gx->thread[0], NULL, getJpegDataThreadNext, &gx->mem);
-                gx->sony_thread_active = true;
-            }
-        }
-		// TODO move to callback func
-        if (gx->use_sony == 1) {
-            if (gx->mem.image_read == true) {
-                if (!gx->mem.image_swapping) {
-                    LoadJPEG(&gx->mem.ro_memory[136], &gx->jpeg_dec, *gx->mem.ro_jpeg_size);
-                }
-                gx->mem.image_read = false;
-            } else {
-			}
-            ss = GetCurrentTimeInMilliSecond();
-        }
-        if (gx->use_sony == 0) {
-            ss = t;
-        }
-		Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
+		Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
 		ms = GetCurrentTimeInMilliSecond() - vs;
 
-		//TODO - change the line return to \r after sony debug finished
+		//TODO see if possible to have also sony time
         if (gx->use_video == 1) {
             printf("-- render time: %.1f ms (%.0f fps) / video time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, vs-t, 1000.0 / (vs-t));
-        } else if (gx->use_sony == 1) {
-            printf("-- render time: %.1f ms (%.0f fps) / sony time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, ss-t, 1000.0 / (ss-t));
         } else {
             printf("-- render time: %.1f ms (%.0f fps)\r", ms, 1000.0 / ms);
         }
@@ -714,7 +652,7 @@ static void Glslr_Render(Glslr *gx)
         if (gx->use_video == 1) {
             capture_video_frame(&gx->sourceparams, &framesize);
         }
-		Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
+		Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
 	}
 }
 
