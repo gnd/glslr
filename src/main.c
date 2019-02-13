@@ -42,6 +42,6 @@ int main(int argc, char *argv[])
 	}
 
 	Glslr_HostDeinitialize();
-    
+
 	return ret;
 }

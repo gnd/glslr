@@ -338,11 +338,6 @@ int Glslr_Construct(Glslr *gx)
 
     memset(&gx->sourceparams, 0, sizeof(gx->sourceparams));
 
-	// setup libcurl
-	curl_global_init(CURL_GLOBAL_ALL);
-	gx->mem.curl_handle  = curl_easy_init();
-	curl_easy_setopt(gx->mem.handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
-
 	gx->is_fullscreen = 0;
 	gx->use_backbuffer = 0;
     gx->use_video = 0;
@@ -378,6 +373,11 @@ int Glslr_Construct(Glslr *gx)
 	jpeg_dec.data = NULL;
 	jpeg_dec.size = 0;
 	jpeg_dec.channels = 0;
+
+	// setup libcurl
+	curl_global_init(CURL_GLOBAL_ALL);
+	gx->mem.curl_handle  = curl_easy_init();
+	curl_easy_setopt(gx->mem.handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
 
 	return 0;
 }
@@ -620,7 +620,6 @@ static void Glslr_SetUniforms(Glslr *gx)
 static void Glslr_Render(Glslr *gx)
 {
 	// TODO check the flow, seems a bit retarded coz of the render time computation
-
     int framesize;
 	if (gx->verbose.render_time) {
 		double t, vs, ms;
@@ -667,6 +666,7 @@ static int Glslr_Update(Glslr *gx)
 	Glslr_SetUniforms(gx);
 	Glslr_Render(gx);
 	Glslr_AdvanceFrame(gx);
+
 	return 0;
 }
 
@@ -732,6 +732,7 @@ static int Glslr_PrepareMainLoop(Glslr *gx)
     	init_device_and_buffers(gx->video_device, &(gx->sourceparams), &(gx->capabilities));
 		}
     Graphics_InitDisplayData(gx->graphics, &(gx->sourceparams));
+
 	return Graphics_AllocateOffscreen(gx->graphics); //TODO: called again, first time from Graphics_ApplyOffscreenChange, sort out
 }
 
@@ -783,6 +784,7 @@ static void Glslr_MainLoop(Glslr *gx)
 			break;
 		}
 	}
+
 goal:
 	return;
 }
@@ -1037,6 +1039,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	if (gx->use_net) {
 		Glslr_Listen(gx->use_tcp, gx->port);
 	}
+
 	return (layer == 0) ? 1 : 0;
 }
 
@@ -1058,8 +1061,10 @@ size_t Glslr_InstanceSize(void)
 
 int Glslr_Main(Glslr *gx)
 {
+
 	pthread_create(&gx->thread, NULL, &getJpegData, &gx->mem);
 	Glslr_PrepareMainLoop(gx);
 	Glslr_MainLoop(gx);
+
 	return EXIT_SUCCESS;
 }
