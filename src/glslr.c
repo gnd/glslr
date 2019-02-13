@@ -24,9 +24,10 @@
 #include "config.h"
 #include "base.h"
 #include "glslr.h"
-#include "sony.h"
 #include "graphics.h"
 #include <stdbool.h>
+#include <pthread.h>
+#include <curl/curl.h>
 #include "v4l2_controls.h"
 #include "util_textfile.h"
 
@@ -62,6 +63,9 @@ struct Glslr_ {
     Videocapabilities_t capabilities;
     JpegMemory_t mem;
     JpegDec_t jpeg_dec;
+    CURL *curl_handle;
+    pthread_t thread[1];
+    bool sony_thread_active;
 	int is_fullscreen;
 	int use_backbuffer;
     int use_video;
@@ -114,6 +118,10 @@ struct JpegMemory {
 };
 
 #define GXDebug(gx, printf_arg) ((gx)->verbose.debug ? (printf printf_arg) : 0)
+
+
+
+
 
 static void addport(int fd)
 {
@@ -362,7 +370,7 @@ int Glslr_Construct(Glslr *gx)
 		fprintf(stderr, "Graphics Initialize failed:\n");
 		return 2;
 	}
-    
+
     memset(&gx->sourceparams, 0, sizeof(gx->sourceparams));
     memset(&gx->jpeg_dec, 0, sizeof(gx->jpeg_dec));
     gx->jpeg_dec.x = 0;
@@ -371,32 +379,51 @@ int Glslr_Construct(Glslr *gx)
     gx->jpeg_dec.data = NULL;
     gx->jpeg_dec.size = 0;
     gx->jpeg_dec.channels = 0;
-    
+
     memset(&gx->mem, 0, sizeof(gx->mem));
     gx->mem.memory = malloc(1);
+    gx->mem.ro_memory = malloc(1);
     gx->mem.size = 0;
     gx->mem.header_found = false;
     gx->mem.size_string = malloc(6);
     gx->mem.jpeg_size = 0;
-            
+    gx->mem.ro_jpeg_size = malloc(sizeof(size_t));
+   *gx->mem.ro_jpeg_size = 666;
+    gx->mem.image_read = false;
+    gx->mem.image_getting = false;
+    gx->mem.image_swapping = false;
+    gx->sony_thread_active = false;
+    gx->mem.identifier = 0;
+
+    // setup libcurl
+    curl_global_init(CURL_GLOBAL_ALL);
+    /*
+    gx->curl_handle = curl_easy_init();
+    curl_easy_setopt(gx->curl_handle, CURLOPT_NOSIGNAL, 1);
+    curl_easy_setopt(gx->curl_handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
+    curl_easy_setopt(gx->curl_handle, CURLOPT_WRITEFUNCTION, SonyCallback);
+    curl_easy_setopt(gx->curl_handle, CURLOPT_WRITEDATA, &gx->mem);
+        */
+    gx->mem.handle = curl_easy_init();
+    curl_easy_setopt(gx->mem.handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
+
 	gx->is_fullscreen = 0;
 	gx->use_backbuffer = 0;
     gx->use_video = 0;
-    gx->use_sony = 0;
+    //GND gx->use_sony = 0;
 	gx->use_tcp = 0;
 	gx->use_net = 0;
 	gx->port = 6666;
 	gx->mouse.x = 0;
 	gx->mouse.y = 0;
-	gx->mouse.y = 0;
-	gx->mouse.fd = open(MOUSE_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
+	//gx->mouse.fd = open(MOUSE_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 	gx->net_input_val = NULL;
 	gx->net_params = 0;
-    gx->video_dev_num = 0;
+    gx->video_dev_num = 666;
     //gx->video_device = NULL;
 	gx->time_origin = GetCurrentTimeInMilliSecond();
 	gx->frame = 0;
-	gx->verbose.render_time = 0;
+	gx->verbose.render_time = 1;
 	gx->verbose.debug = 0;
 	gx->scaling.numer = scaling_numer;
 	gx->scaling.denom = scaling_denom;
@@ -464,6 +491,8 @@ void Glslr_Destruct(Glslr *gx)
 		SourceObject_Delete(RenderLayer_GetAux(layer));
 	}
 	Graphics_Delete(gx->graphics);
+    // free the jpeg reading memory
+    free(gx->mem.memory);
 }
 
 
@@ -493,23 +522,11 @@ static int Glslr_SwitchSony(Glslr *gx)
 {
 	gx->use_sony ^= 1;
 	Graphics_SetSony(gx->graphics, gx->use_sony);
-    // this might be unnecessary 
-    /*
-    if (gx->use_sony == 1) {
-            // pozriet co presne robia tie dve funkcie 
-            
-            //_enqueue_mmap_buffers(&gx->sourceparams);
-            //_start_streaming(&gx->sourceparams);
-    } else {
-            // tutok zmenit nejak glob premennu na 1 (pripocitava sa ku vracanej hodnote size)
-            // _stop_streaming(&gx->sourceparams);
-    }
-    */ 
 	return Graphics_ApplyOffscreenChange(gx->graphics);
 }
 
 
-/* currently not working 
+/* currently not working
 static int Glslr_ChangeScaling(Glslr *gx, int add)
 {
 	gx->scaling.denom += add;
@@ -535,6 +552,7 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 	int i, lines_before, lines_included;
 	RenderLayer *layer;
 
+  //GND printf("-- Entering rebuild\n");
 	for (i = 0; (layer = Graphics_GetRenderLayer(gx->graphics, i)) != NULL; i++) {
 		time_t t;
 		SourceObject *so;
@@ -554,7 +572,7 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
                 memset(code,'\0',MAX_SOURCE_BUF);
 				errno = 0;
 				len = fread(code, 1, sizeof(code), fp);
-                
+
 				/* TODO: handle errno */
 				if (ferror(fp) != 0) {
 					GXDebug(gx, ("ferror = %d\n", ferror(fp)));
@@ -566,16 +584,19 @@ static int Glslr_ReloadAndRebuildShadersIfNeed(Glslr *gx)
 				GXDebug(gx, ("update: %s\n", so->path));
                 // here comes include extend function
                 Glslr_IncludeAdditionalCode(code, &len, &lines_before, &lines_included);
+				//GND printf("-- Going UpdateShaderSource\n");
 				RenderLayer_UpdateShaderSource(layer, code, (int)len);
 				so->last_modify_time = t;
+				//GND printf("-- Going BuildShaderSource\n");
 				Graphics_BuildRenderLayer(gx->graphics, i);
 			}
 		}
 	}
+	//GND printf("-- Exiting rebuild\n");
 	return 0;
 }
 
-/* currently unused 
+/* currently unused
 static void Glslr_UpdateMousePosition(Glslr *gx)
 {
 	int i;
@@ -594,7 +615,7 @@ static void Glslr_UpdateMousePosition(Glslr *gx)
 		err = errno;
 		errno = 0;
 		if (len != sizeof(ev)) {
-			// no more data 
+			// no more data
 			break;
 		}
 		if (err != 0) {
@@ -607,7 +628,7 @@ static void Glslr_UpdateMousePosition(Glslr *gx)
 				return;
 			}
 		}
-		if (ev.type == EV_REL) { // relative-move event 
+		if (ev.type == EV_REL) { // relative-move event
 			switch (ev.code) {
 			case REL_X:
 				gx->mouse.x += (int)ev.value;
@@ -633,22 +654,43 @@ static void Glslr_UpdateMousePosition(Glslr *gx)
 
 static void Glslr_SetUniforms(Glslr *gx)
 {
+	//GND printf("-- Entering SetUniforms\n");
 	double t;
 	double mouse_x, mouse_y;
 	int width, height;
 	t = GetCurrentTimeInMilliSecond() - gx->time_origin;
+	//GND printf("-- GetWindowSize starts\n");
 	Graphics_GetWindowSize(gx->graphics, &width, &height);
+	//GND printf("-- GetWindowSize done\n");
 	mouse_x = (double)gx->mouse.x / width;
 	mouse_y = (double)gx->mouse.y / height;
 	//printf("mousex: %d\n", gx->mouse.x);
 
+  //GND printf("-- Setting uniforms\n");
 	Graphics_SetUniforms(gx->graphics, t / 1000.0,
 	                     gx->net_input_val,
 	                     mouse_x, mouse_y, drand48(), drand48());
+	//GND printf("-- Exiting SetUniforms\n");
 }
 
 static void Glslr_Render(Glslr *gx)
 {
+    //GND printf("-- Starting the GLSLR_RENDER function\n");
+		/*
+    printf("-- i see gx->mem.image_read: %d\n", gx->mem.image_read);
+    if (!gx->mem.image_swapping) {
+        printf("-- No swapping detected\n");
+        printf("-- Identifier is %d\n", gx->mem.identifier);
+        if (gx->mem.image_read) {
+            printf("-- Do i see the first char: %c ?\n", gx->mem.memory[12]);
+        }
+        printf("-- ro_jpeg_size is %ln\n", gx->mem.ro_jpeg_size);
+        printf("-- address of ro_jpeg_size is %p\n", &gx->mem.ro_jpeg_size);
+        printf("-- size of ro_jpeg_size is %lu\n", sizeof(gx->mem.ro_jpeg_size));
+        printf("-- value of ro_jpeg_size is %ld\n", *gx->mem.ro_jpeg_size);
+     }
+		 */
+
     int framesize;
 	if (gx->verbose.render_time) {
 		double t, vs, ms, ss;
@@ -660,34 +702,44 @@ static void Glslr_Render(Glslr *gx)
             vs = t;
         }
         if (gx->use_sony == 1) {
-            printf("Going to enter getJpegData\n");
-            // retrieve data from the cam
-            gx->mem.memory = malloc(1);
-            gx->mem.size = 0;
-            getJpegData(&gx->mem);
-    
-            printf("Data retrieved, loading into libjpeg\n");
-            // load it into char* data
-            LoadJPEG(&gx->mem.memory[136], &gx->jpeg_dec, &gx->mem.jpeg_size);
-            printf("Jpeg done\n");
-            
-            // do something
-     
-            free(gx->mem.memory);
+            if (!gx->sony_thread_active) {
+                //GND printf("-- Creating a new thread\n");
+                //pthread_create(&gx->thread[0], NULL, getJpegDataThread, gx->curl_handle);
+                pthread_create(&gx->thread[0], NULL, getJpegDataThreadNext, &gx->mem);
+                gx->sony_thread_active = true;
+            }
+        }
+        //if (gx->use_sony == 1) {
+            //GND printf("-- Testing for image_read\n");
+            if (gx->mem.image_read == true) {
+                //GND printf("-- image read: %d - Data retrieved, loading into libjpeg\n", gx->mem.image_read);
+                if (!gx->mem.image_swapping) {
+                    //GND printf("-- No swapping so we LoadJPEG of the size %lu\n", *gx->mem.ro_jpeg_size);
+                    LoadJPEG(&gx->mem.ro_memory[136], &gx->jpeg_dec, *gx->mem.ro_jpeg_size);
+                    //GND printf("-- LoadJPEG done\n");
+                }
+                gx->mem.image_read = false;
+            } else {
+							//GND printf("-- Nope, image_read is %d\n", gx->mem.image_read);
+						}
             ss = GetCurrentTimeInMilliSecond();
-        } else {
+        //}
+        if (gx->use_sony == 0) {
             ss = t;
         }
-		Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
-		ms = GetCurrentTimeInMilliSecond() - vs;
+        //GND printf("-- going to render\n");
+				Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
+				//GND printf("-- render finished\n");
+				ms = GetCurrentTimeInMilliSecond() - vs;
+				//TODO - change the line return to \r after sony debug finished
         if (gx->use_video == 1) {
-            printf("render time: %.1f ms (%.0f fps) / video time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, vs-t, 1000.0 / (vs-t));
+            printf("-- render time: %.1f ms (%.0f fps) / video time:  %.1f ms (%.0f fps)  \n", ms, 1000.0 / ms, vs-t, 1000.0 / (vs-t));
         } else if (gx->use_sony == 1) {
-            printf("render time: %.1f ms (%.0f fps) / sony time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, ss-t, 1000.0 / (ss-t));
+            printf("-- render time: %.1f ms (%.0f fps) / sony time:  %.1f ms (%.0f fps)  \n", ms, 1000.0 / ms, ss-t, 1000.0 / (ss-t));
         } else {
-            printf("render time: %.1f ms (%.0f fps)\r", ms, 1000.0 / ms);
+            printf("-- render time: %.1f ms (%.0f fps)\r", ms, 1000.0 / ms);
         }
-        
+
 	} else {
         if (gx->use_video == 1) {
             capture_video_frame(&gx->sourceparams, &framesize);
@@ -698,6 +750,7 @@ static void Glslr_Render(Glslr *gx)
         }
 		Graphics_Render(gx->graphics, &gx->sourceparams, &gx->jpeg_dec);
 	}
+    //printf("Exiting the GLSLR Render function, i can see image_read is %d the ro_jpeg_size is %lu---------\n", gx->mem.image_read, *gx->mem.ro_jpeg_size);
 }
 
 static void Glslr_AdvanceFrame(Glslr *gx)
@@ -707,17 +760,29 @@ static void Glslr_AdvanceFrame(Glslr *gx)
 
 static int Glslr_Update(Glslr *gx)
 {
+	//GND printf("- starting glslr_update, polling events\n");
 	glfwPollEvents();
+	//GND printf("- glslr_update, rebuilding shaders\n");
 	if (Glslr_ReloadAndRebuildShadersIfNeed(gx)) {
 		return 1;
 	}
+	//GND printf("- glslr_update, rebuilding done\n");
+	//GND printf("- glslr_update, trying if net\n");
 	if (gx->use_net) {
+		//GND printf("- glslr_update, polling net\n");
 		dopoll(gx);
 	}
+	//GND printf("- glslr_update, setting uniforms\n");
 	//Glslr_UpdateMousePosition(gx);
 	Glslr_SetUniforms(gx);
+    //GND printf("- glslr_update, before glslr_render\n");
 	Glslr_Render(gx);
+    //printf("going to advance frame, i can see the ro_jpeg_size is: %lu\n", *gx->mem.ro_jpeg_size);
+		//GND printf("- glslr_update, after glslr_render\n");
+		//GND printf("- glslr_update, before glslr_AdvanceFrame\n");
 	Glslr_AdvanceFrame(gx);
+		//GND printf("- glslr_update, after glslr_AdvanceFrame\n");
+		//GND printf("- glslr_update, exiting glslr_update\n\n\n");
 	return 0;
 }
 
@@ -775,12 +840,15 @@ static int Glslr_HandleKeyboadEvent(Glslr *gx)
 
 static int Glslr_PrepareMainLoop(Glslr *gx)
 {
-    const char *fmt = "/dev/video%d";
-    snprintf(&gx->video_device[0], 12, fmt, gx->video_dev_num);
-    printf("Initializing video device: %s\n", gx->video_device);
-    init_device_and_buffers(gx->video_device, &(gx->sourceparams), &(gx->capabilities));
+	  if (gx->video_dev_num != 666) {
+    	const char *fmt = "/dev/video%d";
+    	snprintf(&gx->video_device[0], 12, fmt, gx->video_dev_num);
+    	printf("Initializing video device: %s\n", gx->video_device);
+			//TODO - try catch this
+    	init_device_and_buffers(gx->video_device, &(gx->sourceparams), &(gx->capabilities));
+		}
     Graphics_InitDisplayData(gx->graphics, &(gx->sourceparams));
-	return Graphics_AllocateOffscreen(gx->graphics);
+	return Graphics_AllocateOffscreen(gx->graphics); //TODO: called again, first time from Graphics_ApplyOffscreenChange, sort out
 }
 
 static void Glslr_MainLoop(Glslr *gx)
@@ -805,6 +873,7 @@ static void Glslr_MainLoop(Glslr *gx)
 			//Glslr_ChangeScaling(gx, -1);
 			break;
         case 's':
+        case 'S':
 			Glslr_SwitchSony(gx);
 			printf("Sony ACH3 input %s\n", gx->use_sony ? "ON": "OFF");
 			break;
@@ -843,7 +912,7 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
     len = 0;
     lines_before = 0;
     lines_included = 0;
-    
+
 	GXDebug(gx, ("Glslr_AppendLayer: %s\n", path));
 	fp = fopen(path, "r");
 	if (fp == NULL) {
@@ -858,7 +927,7 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
 	return 0;
 }
 
-void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *lines_included)
+void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *lines_included) //TODO: Clean this up
 {
     FILE *fp;
     char inc_code[MAX_SOURCE_BUF];
@@ -876,7 +945,7 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
     filename = NULL;
     new_code = NULL;
     new_index = NULL;
-    
+
     start = code;
     index = strstr(code, "//#include");
     if (index != NULL) {
@@ -907,7 +976,7 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
         inclen = fread(inc_code, 1, sizeof(inc_code), fp);
         fclose(fp);
         inc_code[inclen] = '\0';
-    
+
         // do some math
         startlen = index - start;
         restlen = *len - startlen - 11 - i - 1; //gross
@@ -915,7 +984,7 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
         *lines_included = Glslr_GetLineCount(inc_code, inclen);
         new_code = (char *)malloc((startlen + inclen + restlen + 1) * sizeof(char));
         new_index = new_code;
-        
+
         // now replace the //#include
         strncpy(new_index, start, startlen);
         new_index += startlen;
@@ -931,7 +1000,7 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
         fclose(fp);
     }
 }
-int Glslr_GetLineCount(char *code, size_t size)  
+int Glslr_GetLineCount(char *code, size_t size)
 {
     unsigned int i = 0;
     int lines = 0;
@@ -955,7 +1024,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	g = gx->graphics;
     layers = malloc(sizeof(char*)*(argc+1));
     layer = 0;
-      
+
 	for (i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--debug")) {
 			gx->verbose.debug = 1;
@@ -970,7 +1039,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
             if (sscanf(argv[i], "%dx%d", &width, &height) < 2) Glslr_Usage();
             Graphics_SetLayout(g, Graphics_LAYOUT_PRIMARY_RESOLUTION, width, height);
             continue;
-		} 
+		}
         if (!strcmp(argv[i], "--secondary-fs")) {
             Graphics_SetLayout(g, Graphics_LAYOUT_SECONDARY_FULLSCREEN, 0, 0);
             continue;
@@ -978,17 +1047,17 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
         if (!strcmp(argv[i], "--secondary-res")) {
             if (++i>=argc) Glslr_Usage();
             if (sscanf(argv[i], "%dx%d", &width, &height) < 2) Glslr_Usage();
-            Graphics_SetLayout(g, Graphics_LAYOUT_SECONDARY_RESOLUTION, width, height); 
+            Graphics_SetLayout(g, Graphics_LAYOUT_SECONDARY_RESOLUTION, width, height);
             continue;
-        } 
+        }
         if (!strcmp(argv[i], "--RGB888")) {
 			Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGB888);
             continue;
-		} 
+		}
         if (!strcmp(argv[i], "--RGBA8888")) {
 			Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGBA8888);
             continue;
-		} 
+		}
         if (!strcmp(argv[i], "--RGB565")) {
 			Graphics_SetOffscreenPixelFormat(g, Graphics_PIXELFORMAT_RGB565);
             continue;
@@ -1029,7 +1098,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 			gx->use_tcp = 1;
             continue;
 		}
-        if (!strcmp(argv[i], "--port")) {   
+        if (!strcmp(argv[i], "--port")) {
             if (++i>=argc) Glslr_Usage();
 			gx->port = strtol(argv[i], NULL, 10); /* handle error gnd */
             continue;
@@ -1038,14 +1107,14 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
             if (++i>=argc) Glslr_Usage();
 			gx->net_params=atoi(argv[i]); /* handle error gnd */
             continue;
-		} 
+		}
         if (!strcmp(argv[i], "--vdev")) {
             if (++i>=argc) Glslr_Usage();
 			gx->video_dev_num=atoi(argv[i]); /* handle error gnd */
             continue;
-		} 
-        
-        // the rest is layers 
+		}
+
+        // the rest is layers
         if ((argc - i) < 1) {
             printf("No layer specified\n");
             Glslr_Usage();
@@ -1055,18 +1124,18 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
         strcpy(layers[layer], argv[i]);
         printf("layer %d: %s\n", layer, argv[i]);
 		layer++;
-        layers[layer] = NULL;   
+        layers[layer] = NULL;
 	}
-    
+
     Graphics_SetupViewport(gx->graphics); /* has to be done after args parsing but before appending layers */
     Graphics_SetBackbuffer(g, gx->use_backbuffer);
-    
+
     // add layers
     for (i = 0; i < layer; i++) {
         printf("Opening layer %d: %s\n", i, layers[i]);
         Glslr_AppendLayer(gx, layers[i]);
     }
-	
+
 	// create net_input_val linked list
 	netin_val *curr=NULL;
 	netin_val *next=NULL;
@@ -1080,7 +1149,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	}
 	gx->net_input_val = next;
 	Graphics_SetNetParams(g, gx->net_params);
-	Graphics_ApplyOffscreenChange(gx->graphics);    
+	Graphics_ApplyOffscreenChange(gx->graphics);
 	if (gx->use_net) {
 		Glslr_Listen(gx->use_tcp, gx->port);
 	}
@@ -1105,6 +1174,7 @@ size_t Glslr_InstanceSize(void)
 
 int Glslr_Main(Glslr *gx)
 {
+	//pthread_create(&gx->thread, NULL, &getJpegData, &mem);
 	Glslr_PrepareMainLoop(gx);
 	Glslr_MainLoop(gx);
 	return EXIT_SUCCESS;

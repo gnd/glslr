@@ -116,7 +116,7 @@ static void CheckGLError(const char *file, int line, const char *func)
 	e = glGetError();
 	if (e != 0) {
 		int i;
-		printf("\nfrom %s(%d): function %s\n", file, line, func);
+		printf("\nfrom %s(%d)--: function %s\n", file, line, func);
 		for (i = 0; i < (int)ARRAY_SIZEOF(tbl); i++) {
 			if (e == tbl[i].code) {
 				printf("  OpenGL|ES raise: code 0x%04x (%s)\n", e, tbl[i].str);
@@ -166,19 +166,22 @@ void Graphics_HostDeinitialize(void)
 {
 }
 
+// FIXME !!!
 static void PrintShaderLog(const char *message, GLuint shader, int before, int included)
 {
-    char *a, *b, *line_str;
+    char *a, *aa, *line_str;
     int line_num, in_include = 0;
 	GLchar build_log[512];
-    
+
     glGetShaderInfoLog(shader, sizeof(build_log), NULL, build_log);
     if (!before && !included) {
         printf("%s %d: %s\n", message, shader, build_log);
     } else { // compute the real line number in the layer source file
-        a = strstr(build_log, "(");
-        b = strstr(build_log, ")");
-        line_num = strtol(a+1,NULL,10);
+        fprintf(stderr, "BUILDLOG: %s\n", build_log);
+        a = strstr(build_log, ":");
+        aa = strstr(build_log, "(");
+        line_num = strtol(a+1,aa,10);
+        //fprintf(stderr, "linenum: %d\n", line_num);
         if (line_num > (before + included)) {
             line_num = line_num - included + 1;
         } else {
@@ -187,8 +190,10 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
                 in_include = 1;
             }
         }
-        line_str = malloc((10 + strlen(b)) * sizeof(char));  //should not be bigger than 10 digits
-        sprintf(line_str, "%d%s", line_num, b);
+        //fprintf(stderr, "before: %d\n", before);
+        //fprintf(stderr, "in include: %d\n", in_include);
+        line_str = malloc((10 + aa-a) * sizeof(char));  //should not be bigger than 10 digits
+        sprintf(line_str, "%d%s", line_num, aa);
         strcpy(a+1, line_str);
         if (!in_include) {
             printf("%s %d: %s\n", message, shader, build_log);
@@ -441,7 +446,7 @@ static int Graphics_SetupInitialState(Graphics *g);
 
 Graphics *Graphics_Create(Graphics_LAYOUT layout,
                           int scaling_numer, int scaling_denom)
-{ 
+{
  	Graphics *g;
 	Scaling sc;
 
@@ -449,7 +454,7 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 	if (!g) {
 		handleError("Graphics not created", -1);
 	}
-    
+
 	sc.numer = scaling_numer;
 	sc.denom = scaling_denom;
 
@@ -467,6 +472,7 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 	g->window_scaling = sc;
 	g->enable_backbuffer = 0;
     g->enable_video = 0;
+    g->enable_sony = 0;
 	g->net_params = 0;
 	g->backbuffer_texture_object = 0;
 	g->backbuffer_texture_unit = 0;
@@ -474,7 +480,7 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 	g->video_texture_unit = 0;
     g->sony_texture_object = 0;
 	g->sony_texture_unit = 0;
-    
+
 	return g;
 }
 
@@ -559,18 +565,18 @@ static int Graphics_SetupInitialState(Graphics *g)
 }
 
 void Graphics_SetupViewport(Graphics *g) {
-    
+
     int i, count, xpos, ypos;
-	
+
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 	for (i = 0; i < count; i++) {
 		const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
 		fprintf(stderr, "Monitor[%i]: %i x %i @ %i hz\n", i, mode->width, mode->height, mode->refreshRate);
 	}
-        
+
     xpos = 0;
     ypos = 0;
- 
+
     switch (g->layout) {
         case Graphics_LAYOUT_PRIMARY_RESOLUTION: /* default */
             printf("Using primary monitor\n");
@@ -607,14 +613,14 @@ void Graphics_SetupViewport(Graphics *g) {
             }
         break;
     }
-    
+
 	g->window = glfwCreateWindow(g->viewport.z, g->viewport.w, "glslr", NULL, NULL);
-    
+
 	if(!g->window) {
 		glfwTerminate();
 		handleError("GLFW create window failed", -1);
 	}
-    
+
     g->viewport.z *= fixDpiScale(g->window);
     g->viewport.w *= fixDpiScale(g->window);
     glfwSetWindowSize(g->window, g->viewport.z, g->viewport.w);
@@ -623,7 +629,7 @@ void Graphics_SetupViewport(Graphics *g) {
     glfwMakeContextCurrent(g->window);
     glfwSetWindowSizeCallback(g->window, handleResize);
     glfwSwapInterval(1);
-    
+
 	Graphics_SetupInitialState(g);
 }
 
@@ -771,7 +777,7 @@ int Graphics_AllocateOffscreen(Graphics *g)
 		                              g->texture_wrap_mode);
 		/* TODO: handle error */
 	}
-    glGenTextures(2, g->textures);
+    glGenTextures(2, g->textures); //TODO: seems like a mess with texture ids
     g->video_texture_object = g->textures[0];
     g->backbuffer_texture_object = g->textures[1];
     if (g->enable_sony) {
@@ -784,9 +790,9 @@ int Graphics_AllocateOffscreen(Graphics *g)
                      internal_format,
                      g->displaydata.texture_width, g->displaydata.texture_height,
                      0,
-                     pixelformat, 
-                     GL_UNSIGNED_BYTE, 
-                     NULL);  
+                     pixelformat,
+                     GL_UNSIGNED_BYTE,
+                     NULL);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -804,9 +810,9 @@ int Graphics_AllocateOffscreen(Graphics *g)
                      internal_format,
                      g->displaydata.texture_width, g->displaydata.texture_height,
                      0,
-                     pixelformat, 
-                     GL_UNSIGNED_BYTE, 
-                     NULL);  
+                     pixelformat,
+                     GL_UNSIGNED_BYTE,
+                     NULL);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -874,13 +880,17 @@ void Graphics_SetUniforms(Graphics *g, double t,
                           double mouse_x, double mouse_y,
                           double randx, double randy)
 {
+  //GND //GND printf("--- Entering Graphics_SetUniforms\n");
 	int i,j;
 	int width, height;
 	netin_val *val=NULL;
 	netin_addr *addr=NULL;
 
+  //GND printf("--- Check_GL (1)\n");
 	CHECK_GL();
+  //GND printf("--- Getting SourceSize\n");
 	Graphics_GetSourceSize(g, &width, &height);
+  //GND printf("--- Iterating over layers (A2G >)\n");
 	for (i = 0; i < g->num_render_layer; i++) {
 		RenderLayer *p;
 		p = &g->render_layer[i];
@@ -904,17 +914,21 @@ void Graphics_SetUniforms(Graphics *g, double t,
 
 		glUseProgram(0);
 	}
+ //GND  printf("--- Check_GL (2)\n");
 	CHECK_GL();
+  //GND printf("--- Exiting Graphics_SetUniforms\n");
 }
 
 void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg_dec) {
 	int i;
 	GLuint prev_layer_texture_unit;
 	GLuint prev_layer_texture_object;
+  //GND printf("--- Entering render\n");
 
 	CHECK_GL();
 	prev_layer_texture_unit = 0;
 	prev_layer_texture_object = 0;
+  //GND printf("--- Iterate start (A2G >)\n");
 	for (i = 0; i < g->num_render_layer; i++) {
 		RenderLayer *p;
 		p = &g->render_layer[i];
@@ -969,7 +983,9 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		prev_layer_texture_unit = p->texture_unit;
 		prev_layer_texture_object = p->texture_object;
 	}
+  //GND printf("--- Iterate end\n");
 
+  //GND printf("--- Checking for enable_backbuffer (A2G >)\n");
 	if (g->enable_backbuffer) {
 		int width, height;
 		Graphics_GetSourceSize(g, &width, &height);
@@ -982,7 +998,9 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		glActiveTexture(GL_TEXTURE0 + g->backbuffer_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
-    if (g->enable_video) {
+
+ //GND  printf("--- Checking for enable_video (A2G >)\n");
+  if (g->enable_video) {
         //int texture_size;
         //g->displaydata.bytes_per_pixel = 2;
         //texture_size = g->displaydata.texture_width * g->displaydata.texture_height * g->displaydata.bytes_per_pixel;
@@ -990,14 +1008,14 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
         GLint internal_format = (GLint)g->displaydata.internal_format;
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
 		glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
-		glBindTexture(GL_TEXTURE_2D, g->video_texture_object); 
+		glBindTexture(GL_TEXTURE_2D, g->video_texture_object);
 		glTexImage2D(GL_TEXTURE_2D,
                      0,             /* level */
                      internal_format,
                      g->displaydata.texture_width, g->displaydata.texture_height,
                      0,             /* border */
-                     pixelformat, 
-                     GL_UNSIGNED_BYTE, 
+                     pixelformat,
+                     GL_UNSIGNED_BYTE,
                      sourceparams->captured.start);
         //Swizzle mask: https://www.opengl.org/wiki/Texture#Swizzle_mask
         // u, y1, v, y2
@@ -1007,19 +1025,23 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
+    //GND printf("--- Checking for enable_sony (A2G >)\n");
     if (g->enable_sony) {
+      //GND printf("--- Running sony render part now\n");
         GLint internal_format = (GLint)g->displaydata.internal_format;
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
 		glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
-		glBindTexture(GL_TEXTURE_2D, g->sony_texture_object); 
+		glBindTexture(GL_TEXTURE_2D, g->sony_texture_object);
+    //GND printf("--- Going to access jpeg_data now\n");
 		glTexImage2D(GL_TEXTURE_2D,
                      0,             /* level */
                      internal_format,
                      g->displaydata.texture_width, g->displaydata.texture_height,
                      0,             /* border */
-                     pixelformat, 
-                     GL_UNSIGNED_BYTE, 
+                     pixelformat,
+                     GL_UNSIGNED_BYTE,
                      jpeg_dec->data);
+    //GND printf("--- jpeg_data accessed\n");
 		glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
@@ -1027,6 +1049,7 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 	CHECK_GL();
 
 	glfwSwapBuffers(g->window);
+  //GND printf("--- Exiting render\n");
 }
 
 void Graphics_SetBackbuffer(Graphics *g, int enable)
@@ -1051,7 +1074,9 @@ void Graphics_SetNetParams(Graphics *g, int params)
 
 void Graphics_GetWindowSize(Graphics *g, int *_width, int *_height)
 {
+  //GND printf("--- Entering GetWindowSize (A2G >)\n");
 	glfwGetWindowSize(g->window, _width, _height);
+  //GND printf("--- Exiting GetWindowSize\n");
 }
 
 void Graphics_GetSourceSize(Graphics *g, int *width, int *height)
@@ -1115,10 +1140,14 @@ static void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format,
 
 void Graphics_getWindowWidth(Graphics *g, int *width)
 {
+  //GND printf("Entering getwindowWidth (A2G >)\n");
 	*width = g->viewport.z;
+  //GND printf("Exiting getwindowWidth\n");
 }
 
 void Graphics_getWindowHeight(Graphics *g, int *height)
 {
+  //GND printf("Entering getwindowHeight (A2G >)\n");
 	*height = g->viewport.w;
+  //GND printf("Exiting getwindowHeight\n");
 }

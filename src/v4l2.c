@@ -1,13 +1,13 @@
-/* ************************************************************************* 
+/* *************************************************************************
 * This frankenstein was ripped out and glued together from glutcam by George Koharchik:
 * https://www.linuxjournal.com/content/image-processing-opengl-and-shaders
-* 
+*
 * Many thanks for this article & code !!
 *
 * ************************************************************************* */
 
 #include <stdio.h>
-#include <string.h> 
+#include <string.h>
 #include <sys/stat.h> /* stat, open */
 #include <sys/types.h>
 #include <fcntl.h> /* open   */
@@ -45,11 +45,11 @@ static int _xioctl(int fd, int request, void * arg) {
 
 
 void init_device_and_buffers(char * devicename, Sourceparams_t * sourceparams, Videocapabilities_t * capabilities) {
-    
+
     int fd, buffersize;
-    
+
     fd = _verify_and_open_device(devicename);
-      
+
     sourceparams->source = LIVESOURCE;
     sourceparams->fd = fd;
     sourceparams->encoding = LUMA;
@@ -58,22 +58,22 @@ void init_device_and_buffers(char * devicename, Sourceparams_t * sourceparams, V
     sourceparams->captured.start = NULL;
     buffersize = _compute_bytes_per_frame(640, 480);
     sourceparams->captured.length = buffersize;
-  
+
     _get_device_capabilities(devicename, fd, capabilities);
     sourceparams->iomethod = IO_METHOD_MMAP;        // select_io_method
     _try_reset_crop_scale(sourceparams);            // set_device_capture_parms
     _set_image_size_and_format(sourceparams);       // set_device_capture_parms
     _request_and_mmap_io_buffers(sourceparams);     // set_io_method, default to MMAP for now
     /* point captured.start at an empty buffer that we can draw until we get data  */
-    sourceparams->captured.start = sourceparams->buffers[0].start;  
+    sourceparams->captured.start = sourceparams->buffers[0].start;
 }
 
 
 int _verify_and_open_device(char * devicename) {
     int fd;
-    struct stat buff; 
+    struct stat buff;
     char errstring[ERRSTRINGLEN];
-  
+
     if (-1 == stat(devicename, &buff)) {
         sprintf(errstring, "Error: can't 'stat' given device file '%s'\n", devicename);
         perror(errstring);
@@ -114,7 +114,7 @@ void _collect_supported_image_formats(int device_fd,  Videocapabilities_t * capa
     indx = 0;
 
     fprintf(stderr, "Source supplies the following formats:\n");
-  
+
     do {
         memset(&format, 0, sizeof(format));
         format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -154,7 +154,7 @@ void print_supported_framesizes(int device_fd, __u32 pixel_format, char * label)
         memset(&sizes, 0, sizeof(sizes));
         sizes.index = indx;
         sizes.pixel_format = pixel_format;
-    
+
         retval = _xioctl (device_fd, VIDIOC_ENUM_FRAMESIZES, &sizes);
 
         if (0 == retval) {
@@ -163,7 +163,7 @@ void print_supported_framesizes(int device_fd, __u32 pixel_format, char * label)
                 case V4L2_FRMSIZE_TYPE_DISCRETE:
                     fprintf(stderr, "   [%d] %d x %d\n", sizes.index,
                     sizes.discrete.width,
-                    sizes.discrete.height); 
+                    sizes.discrete.height);
                     break;
                 case V4L2_FRMSIZE_TYPE_CONTINUOUS: /* fallthrough  */
                 case V4L2_FRMSIZE_TYPE_STEPWISE:
@@ -188,7 +188,7 @@ void print_supported_framesizes(int device_fd, __u32 pixel_format, char * label)
             /* VIDIOC_ENUM_FRAMESIZES returns -1 and sets errno to EINVAL  */
             /* when you've run out of sizes. so only tell the user we   */
             /* have an error if we didn't find _any_ sizes to report  */
-	
+
             if (0 == found_a_size) {
                 perror("  Warning: can't get size information\n");
             }
@@ -233,7 +233,7 @@ void _try_reset_crop_scale(Sourceparams_t * sourceparams) {
     struct v4l2_cropcap cropcap;
     struct v4l2_crop crop;
     char errstring[ERRSTRINGLEN];
-  
+
     memset(&cropcap, 0, sizeof(cropcap));
 
     /* set crop/scale to show capture whole picture  */
@@ -241,12 +241,12 @@ void _try_reset_crop_scale(Sourceparams_t * sourceparams) {
 
     /* get the area for the whole picture in cropcap.defrect  */
     status = _xioctl (sourceparams->fd, VIDIOC_CROPCAP, &cropcap);
-  
+
     if (0 ==  status) {
         /* set the area to that whole picture  */
         crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         crop.c = cropcap.defrect; /* reset to default */
-    
+
         if (-1 == _xioctl (sourceparams->fd, VIDIOC_S_CROP, &crop)) {
             switch (errno) {
                 case EINVAL:
@@ -260,7 +260,7 @@ void _try_reset_crop_scale(Sourceparams_t * sourceparams) {
             }
             perror(errstring);
         }
-    } else {	
+    } else {
         /* Errors ignored. */
         perror("Warning: ignoring error when trying to retrieve crop area\n");
     }
@@ -268,16 +268,16 @@ void _try_reset_crop_scale(Sourceparams_t * sourceparams) {
 
 
 int _set_image_size_and_format(Sourceparams_t * sourceparams) {
-    
+
     struct v4l2_format format;
     int retval;
     char errstring[ERRSTRINGLEN];
     unsigned int requested_height, requested_width;
     unsigned int supplied_height, supplied_width;
-    
+
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  
+
     /* first get the current format, then change the parts we want  */
     /* to change...  */
     retval = _xioctl (sourceparams->fd, VIDIOC_G_FMT, &format);
@@ -309,7 +309,7 @@ int _set_image_size_and_format(Sourceparams_t * sourceparams) {
             requested_width = sourceparams->image_width;
             supplied_height = format.fmt.pix.height;
             supplied_width = format.fmt.pix.width;
-	  
+
             if ((requested_height != supplied_height) || (requested_width != supplied_width)) {
                 fprintf(stderr, "Warning: program requested size %d x %d;", sourceparams->image_width, sourceparams->image_height);
                 fprintf(stderr, " source offers %d x %d", format.fmt.pix.width, format.fmt.pix.height);
@@ -324,11 +324,11 @@ int _set_image_size_and_format(Sourceparams_t * sourceparams) {
 
 
 int _request_and_mmap_io_buffers(Sourceparams_t * sourceparams) {
-  
+
     int retval, buffercount;
     /* find out how many buffers are available for mmap access  */
     buffercount = _request_video_buffer_access(sourceparams->fd, V4L2_MEMORY_MMAP);
-  
+
     if (-1 == buffercount) {
         retval = -1; /* error  */
     } else {
@@ -355,13 +355,13 @@ int _request_and_mmap_io_buffers(Sourceparams_t * sourceparams) {
 
 
 int _request_video_buffer_access(int device_fd, enum v4l2_memory memory) {
-    
+
     struct v4l2_requestbuffers request;
     int status, retval;
     const char * mmap_error =  "Error: video device doesn't support memory mapping\n";
     const char * userptr_error= "Error: video device doesn't support user pointer I/O\n";
     const char * errstring;
-  
+
     memset(&request, 0, sizeof(request));
     request.count = MAX_VIDEO_BUFFERS;
     request.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -391,15 +391,15 @@ int _request_video_buffer_access(int device_fd, enum v4l2_memory memory) {
 }
 
 
-int _mmap_io_buffers(Sourceparams_t * sourceparams) { 
-    
+int _mmap_io_buffers(Sourceparams_t * sourceparams) {
+
     int i, status, retval;
     struct v4l2_buffer buf;
     void * mmapped_buffer;
-  
+
     status = 0;
     retval = 0;
-  
+
     for (i = 0; (i < sourceparams->buffercount) && (0 == status); i++) {
         memset(&buf, 0, sizeof(buf));
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -430,9 +430,9 @@ int _enqueue_mmap_buffers(Sourceparams_t * sourceparams) {
     int i;
     int status;
     struct v4l2_buffer buf;
-  
+
     status = 0;
-  
+
     for(i = 0; (i < sourceparams->buffercount) && (0 == status); i++) {
         memset(&buf, 0, sizeof(buf));
         memset(&(buf.timestamp), 0, sizeof(struct timeval));
@@ -487,7 +487,7 @@ void next_device_frame(Sourceparams_t * sourceparams, int * nbytesp) {
     //void *datap;
     int data_ready;
     data_ready = wait_for_input(sourceparams->fd , DATA_TIMEOUT_INTERVAL);
-  
+
     if (-1 == data_ready) {
         /* we had an error waiting on data  */
         //datap = NULL;
@@ -496,7 +496,7 @@ void next_device_frame(Sourceparams_t * sourceparams, int * nbytesp) {
         /* no data available in timeout interval  */
         //datap = NULL;
         *nbytesp = 0;
-    } else {                            
+    } else {
         // ONLY MMAP SUPPORTED RIGHT NOW - see the original glutcam next_device_frame for reference
         nbytes = harvest_mmap_device_buffer(sourceparams);
         if (0 < nbytes) {
@@ -518,7 +518,9 @@ int harvest_mmap_device_buffer(Sourceparams_t * sourceparams) {
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
     status = _xioctl (sourceparams->fd, VIDIOC_DQBUF, &buf);
-  
+
+    retval = -1;
+
     if (-1 == status) {
         /* error dequeueing the buffer  */
         switch(errno) {
@@ -530,11 +532,12 @@ int harvest_mmap_device_buffer(Sourceparams_t * sourceparams) {
             case EIO: /* fallthrough  */
                 /* transient [?] error  */
                 perror("VIDIOC_DQBUF: EIO");
+                break;
         default:
             perror("Error dequeueing mmap-ed buffer from device");
             retval = -1;
             break;
-        }	  
+        }
     } else {
         /* point captured.start at where the data starts in the  */
         /* memory mapped buffer   */
@@ -552,11 +555,12 @@ int harvest_mmap_device_buffer(Sourceparams_t * sourceparams) {
                 case EIO: /* fallthrough  */
                     /* transient [?] error  */
                     perror("VIDIOC_DQBUF: EIO");
+                    break;
             default:
                 perror("Error dequeueing mmap-ed buffer from device");
                 retval = -1;
                 break;
-            }	
+            }
         } else {
             retval = sourceparams->captured.length;
         }
