@@ -2,12 +2,12 @@
 #define INCLUDED_GRAPHICS_H
 
 #include <stddef.h>
+#include <pthread.h>
 #include "base.h"
 
 #define GL_GLEXT_PROTOTYPES
 #include <GLFW/glfw3.h>
 #include "v4l2.h"
-//#include "sony.h"
 
 // TODO how not to define this in every header ?
 typedef struct JpegDec_s {
@@ -18,6 +18,7 @@ typedef struct JpegDec_s {
         unsigned long size;
         int channels;
 } JpegDec_t;
+extern pthread_mutex_t video_mutex;
 
 typedef enum {
     Graphics_LAYOUT_PRIMARY_FULLSCREEN,

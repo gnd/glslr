@@ -47,6 +47,7 @@ int Glslr_GetLineCount(char *code, size_t size);
 void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *lines_included);
 
 // TODO define in only one headerfile
+void *getJpegData(void *memory);
 typedef struct JpegMemory_s {
     CURL *curl_handle;
     unsigned char *memory;

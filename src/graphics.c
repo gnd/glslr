@@ -1020,7 +1020,7 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
 		glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, g->sony_texture_object);
-        // TODO add mutex lock here
+        pthread_mutex_lock(&video_mutex);
 		glTexImage2D(GL_TEXTURE_2D,
                      0,             /* level */
                      internal_format,
@@ -1029,6 +1029,7 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
                      pixelformat,
                      GL_UNSIGNED_BYTE,
                      jpeg_dec->data);
+        pthread_mutex_unlock(&video_mutex);
 		glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}

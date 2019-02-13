@@ -34,7 +34,7 @@ struct Glslr_ {
     Videocapabilities_t capabilities;
     JpegMemory_t mem;
     CURL *curl_handle;
-    pthread_t thread[1];
+    pthread_t thread;
     bool sony_thread_active;
 	int is_fullscreen;
 	int use_backbuffer;
@@ -338,17 +338,10 @@ int Glslr_Construct(Glslr *gx)
 
     memset(&gx->sourceparams, 0, sizeof(gx->sourceparams));
 
-    // setup libcurl
-    curl_global_init(CURL_GLOBAL_ALL);
-    /*
-    gx->curl_handle = curl_easy_init();
-    curl_easy_setopt(gx->curl_handle, CURLOPT_NOSIGNAL, 1);
-    curl_easy_setopt(gx->curl_handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
-    curl_easy_setopt(gx->curl_handle, CURLOPT_WRITEFUNCTION, SonyCallback);
-    curl_easy_setopt(gx->curl_handle, CURLOPT_WRITEDATA, &gx->mem);
-        */
-    gx->mem.handle = curl_easy_init();
-    curl_easy_setopt(gx->mem.handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
+	// setup libcurl
+	curl_global_init(CURL_GLOBAL_ALL);
+	gx->mem.curl_handle  = curl_easy_init();
+	curl_easy_setopt(gx->mem.handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
 
 	gx->is_fullscreen = 0;
 	gx->use_backbuffer = 0;
@@ -1065,7 +1058,7 @@ size_t Glslr_InstanceSize(void)
 
 int Glslr_Main(Glslr *gx)
 {
-	//pthread_create(&gx->thread, NULL, &getJpegData, &mem);
+	pthread_create(&gx->thread, NULL, &getJpegData, &gx->mem);
 	Glslr_PrepareMainLoop(gx);
 	Glslr_MainLoop(gx);
 	return EXIT_SUCCESS;
