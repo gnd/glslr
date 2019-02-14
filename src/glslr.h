@@ -34,6 +34,7 @@ typedef struct JpegMemory_s {
     size_t size;
     size_t jpeg_size;
     bool header_found;
+    bool stop;
 } JpegMemory_t;
 
 struct Glslr_ {

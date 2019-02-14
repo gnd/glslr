@@ -8,7 +8,7 @@ typedef struct JpegMemory_s {
     size_t size;
     size_t jpeg_size;
     bool header_found;
-    CURL *handle;
+    bool stop;
 } JpegMemory_t;
 
 typedef struct JpegDec_s {

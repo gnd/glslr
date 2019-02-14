@@ -273,6 +273,7 @@ int Glslr_Construct(Glslr *gx)
 
     memset(&gx->sourceparams, 0, sizeof(gx->sourceparams));
 
+	gx->sony_thread_active = false;
 	gx->is_fullscreen = 0;
 	gx->use_backbuffer = 0;
     gx->use_video = 0;
@@ -300,6 +301,7 @@ int Glslr_Construct(Glslr *gx)
 	gx->mem.header_found = false;
 	gx->mem.size_string = malloc(6);
 	gx->mem.jpeg_size = 0;
+	gx->mem.stop = false;
 
 	memset(&jpeg_dec, 0, sizeof(jpeg_dec));
 	jpeg_dec.x = 0;
@@ -587,6 +589,24 @@ static int Glslr_Update(Glslr *gx)
 	if (gx->use_net) {
 		dopoll(gx);
 	}
+	if (gx->use_sony) {
+		// setup libcurl
+		curl_global_init(CURL_GLOBAL_ALL);
+		gx->mem.curl_handle = curl_easy_init();
+		curl_easy_setopt(gx->mem.curl_handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
+
+		if (!gx->sony_thread_active) {
+			gx->sony_thread_active = true;
+			gx->mem.stop = false;
+			pthread_create(&gx->thread, NULL, &getJpegData, &gx->mem);
+		}
+	} else {
+		// stop the thread if running
+		if (gx->sony_thread_active) {
+			gx->mem.stop = true;
+			gx->sony_thread_active = false;
+		}
+	}
 	//Glslr_UpdateMousePosition(gx);
 	Glslr_SetUniforms(gx);
 	Glslr_Render(gx);
@@ -649,13 +669,15 @@ static int Glslr_HandleKeyboadEvent(Glslr *gx)
 
 static int Glslr_PrepareMainLoop(Glslr *gx)
 {
-	  if (gx->video_dev_num != 666) {
-    	const char *fmt = "/dev/video%d";
+	// setup video
+	if (gx->video_dev_num != 666) {
+		const char *fmt = "/dev/video%d";
     	snprintf(&gx->video_device[0], 12, fmt, gx->video_dev_num);
     	printf("Initializing video device: %s\n", gx->video_device);
 		//TODO - try catch this
     	init_device_and_buffers(gx->video_device, &(gx->sourceparams), &(gx->capabilities));
-		}
+	}
+
     Graphics_InitDisplayData(gx->graphics, &(gx->sourceparams));
 
 	return Graphics_AllocateOffscreen(gx->graphics);
@@ -986,7 +1008,6 @@ size_t Glslr_InstanceSize(void)
 
 int Glslr_Main(Glslr *gx)
 {
-	pthread_create(&gx->thread, NULL, &getJpegData, &gx->mem);
 	Glslr_PrepareMainLoop(gx);
 	Glslr_MainLoop(gx);
 

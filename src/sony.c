@@ -41,7 +41,14 @@ static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void *user
 
         // start loading another image
         mem->size = 0;
-        return realsize;
+
+        // check if we should stop
+        if (mem->stop) {
+            // this will exit the callback
+            return realsize-1;
+        } else {
+            return realsize;
+        }
     }
     return realsize;
 }
@@ -58,17 +65,18 @@ void *getJpegData(void *memory) {
     curl_easy_setopt(mem->curl_handle, CURLOPT_WRITEFUNCTION, SonyCallback);
     curl_easy_setopt(mem->curl_handle, CURLOPT_WRITEDATA, mem);
     res = curl_easy_perform(mem->curl_handle);
-    if(res != CURLE_OK) {
-    size_t len = strlen(errbuf);
-    fprintf(stderr, "\nlibcurl: (%d) ", res);
-    if(len)
-      fprintf(stderr, "%s%s", errbuf,
-              ((errbuf[len - 1] != '\n') ? "\n" : ""));
-    else
-      fprintf(stderr, "%s\n", curl_easy_strerror(res));
-  }
     curl_easy_cleanup(mem->curl_handle);
     curl_global_cleanup();
+
+    // if we get an error from curl_easy_perform
+    if ((res != CURLE_OK) && (!mem->stop)) {
+        size_t len = strlen(errbuf);
+        fprintf(stderr, "\nlibcurl: (%d) ", res);
+        if (len)
+            fprintf(stderr, "%s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
+        else
+            fprintf(stderr, "%s\n", curl_easy_strerror(res));
+    }
 
     // make gcc happy
     return 0;
