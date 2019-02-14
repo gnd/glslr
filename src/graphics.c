@@ -210,7 +210,7 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
 
     glGetShaderInfoLog(shader, sizeof(build_log), NULL, build_log);
     if (!before && !included) {
-        printf("Error in \033[32minmain\033[0m (%s):\n%s\n", message, build_log);
+        printf("Error in \033[32mmain\033[0m (%s):\n%s\n", message, build_log);
     } else {
         tmp = malloc(strlen(build_log) + 1);
         strcpy(tmp, build_log);
@@ -224,7 +224,7 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
 
         // determine the real line number and if the error is in include or not
         if (line_num > (before + included)) {
-            line_num -= (included+1);
+            line_num -= (included-1);
         } else {
             if (line_num > before) {
                 line_num -= before;
@@ -239,7 +239,7 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
         str_replace(build_log, old_line_num, new_line_num);
 
         if (!in_include) {
-            printf("Error in \033[32minmain\033[0m (%s):\n%s\n", message, build_log);
+            printf("Error in \033[32mmain\033[0m (%s):\n%s\n", message, build_log);
         } else {
             printf("Error in \033[32minclude\033[0m (%s):\n%s\n", message, build_log);
         }
