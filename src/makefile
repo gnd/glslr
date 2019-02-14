@@ -14,9 +14,11 @@ ifeq (yes, $(DEBUG))
 else
   CFLAGS+=-O2 -s
 endif
-#CFLAGS += -DPLATFORM_LINUX $(shell pkg-config --cflags glfw3 glu gl)
 
-#LIBS+=-lGLESv2
+ifeq ($(PREFIX),)
+    PREFIX := /usr
+endif
+
 LIBS+=-lglfw
 LIBS+=-lGL
 LIBS+=-lX11
@@ -43,10 +45,13 @@ SOURCES+=sony.c
 
 OBJECTS=$(subst .c,.o, $(SOURCES))
 
-all: $(TARGET)
+all: $(TARGET) install
 
 $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
+
+install:
+	install -D $(TARGET) $(PREFIX)/bin/$(TARGET)
 
 clean:
 	rm -f *~
