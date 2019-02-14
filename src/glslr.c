@@ -6,53 +6,23 @@
 #include "glslr.h"
 
 #define SOCKET_ERROR -1
-
-
 #define DEBUG 1
-
 #define MAX_SOURCE_BUF (1024*64)
 #define MOUSE_DEVICE_PATH "/dev/input/event0"
-
 #define MAX(a, b) (((a) >= (b)) ? (a) : (b))
 #define MIN(a, b) (((a) <  (b)) ? (a) : (b))
 #define CLAMP(min, x, max) MIN(MAX(min, x), max)
+#define BUFSIZE 8192
+#define GXDebug(gx, printf_arg) ((gx)->verbose.debug ? (printf printf_arg) : 0)
 
-// TODO move this shit to glslr.h
-
-typedef struct {
-	const char *path;
-    //char path[32];
-    time_t last_modify_time;
-} SourceObject;
-
+// Some globals
 JpegDec_t jpeg_dec;
-
-
-
-typedef struct _fdpoll {
-	int fdp_fd;
-	char *fdp_outbuf;/*output message buffer*/
-	int fdp_outlen;     /*length of output message*/
-	int fdp_discard;/*buffer overflow: output message is incomplete, discard it*/
-	int fdp_gotsemi;/*last char from input was a semicolon*/
-} t_fdpoll;
-
 static int nfdpoll;
 static t_fdpoll *fdpoll;
 static int maxfd;
 static int sockfd;
 static int protocol;
-
-static void sockerror(const char *s);
-static void x_closesocket(int fd);
-static void dopoll(Glslr *gx);
-#define BUFSIZE 8192
-
-#define GXDebug(gx, printf_arg) ((gx)->verbose.debug ? (printf printf_arg) : 0)
-
 pthread_mutex_t video_mutex;
-
-
 
 static void addport(int fd)
 {
@@ -191,8 +161,7 @@ static int tcpmakeoutput(t_fdpoll *x, char *inbuf, int len)
 	return (0);
 }
 
-
-static void tcpread(t_fdpoll *x)
+void tcpread(t_fdpoll *x)
 {
 	int  ret;
 	char inbuf[BUFSIZE];
@@ -205,18 +174,18 @@ static void tcpread(t_fdpoll *x)
 	else tcpmakeoutput(x, inbuf, ret);
 }
 
-static void sockerror(const char *s)
+void sockerror(const char *s)
 {
 	int err = errno;
 	fprintf(stderr, "%s: %s (%d)\n", s, strerror(err), err);
 }
 
-static void x_closesocket(int fd)
+void x_closesocket(int fd)
 {
 	close(fd);
 }
 
-static void dopoll(Glslr *gx)
+void dopoll(Glslr *gx)
 {
 	t_fdpoll *fp;
 	fd_set readset;
@@ -582,32 +551,25 @@ static void Glslr_SetUniforms(Glslr *gx)
 
 static void Glslr_Render(Glslr *gx)
 {
-	// TODO check the flow, seems a bit retarded coz of the render time computation
     int framesize;
-	if (gx->verbose.render_time) {
-		double t, vs, ms;
-		t = GetCurrentTimeInMilliSecond();
-        if (gx->use_video == 1) {
-            capture_video_frame(&gx->sourceparams, &framesize);
-            vs = GetCurrentTimeInMilliSecond();
-        } else {
-            vs = t;
-        }
-		Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
-		ms = GetCurrentTimeInMilliSecond() - vs;
+	double t = 0, vs = 0, ms = 0;
+	t = GetCurrentTimeInMilliSecond();
 
-		//TODO see if possible to have also sony time
+    if (gx->use_video == 1) {
+        capture_video_frame(&gx->sourceparams, &framesize);
+        vs = GetCurrentTimeInMilliSecond();
+    }
+	Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
+
+	//TODO see if possible to have also sony time
+	if (gx->verbose.render_time) {
         if (gx->use_video == 1) {
+			ms = GetCurrentTimeInMilliSecond() - vs;
             printf("-- render time: %.1f ms (%.0f fps) / video time:  %.1f ms (%.0f fps)  \r", ms, 1000.0 / ms, vs-t, 1000.0 / (vs-t));
         } else {
+			ms = GetCurrentTimeInMilliSecond() - t;
             printf("-- render time: %.1f ms (%.0f fps)\r", ms, 1000.0 / ms);
         }
-
-	} else {
-        if (gx->use_video == 1) {
-            capture_video_frame(&gx->sourceparams, &framesize);
-        }
-		Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
 	}
 }
 
@@ -696,7 +658,7 @@ static int Glslr_PrepareMainLoop(Glslr *gx)
 		}
     Graphics_InitDisplayData(gx->graphics, &(gx->sourceparams));
 
-	return Graphics_AllocateOffscreen(gx->graphics); //TODO: called again, first time from Graphics_ApplyOffscreenChange, sort out
+	return Graphics_AllocateOffscreen(gx->graphics);
 }
 
 static void Glslr_MainLoop(Glslr *gx)

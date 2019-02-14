@@ -5,22 +5,18 @@
 #include <assert.h>
 #include <time.h>
 #include <errno.h>
-
 #include <linux/input.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
-
 #include <fcntl.h>
 #include <termios.h>
-
 #include "config.h"
 #include "base.h"
 #include "graphics.h"
 #include <stdbool.h>
 #include <pthread.h>
-
 #include "v4l2_controls.h"
 #include "util_textfile.h"
 
@@ -64,7 +60,7 @@ struct Glslr_ {
     int video_dev_num;
     char video_device[12];
 	double time_origin;
-	unsigned int frame;         /* TODO: move to graphics */
+	unsigned int frame;
 	struct {
 		int debug;
 		int render_time;
@@ -75,12 +71,28 @@ struct Glslr_ {
 	} scaling;
 };
 
-typedef struct Glslr_ Glslr;
-void udpmakeoutput(char *buf, Glslr *gx);
+typedef struct _fdpoll {
+	int fdp_fd;
+	char *fdp_outbuf;/*output message buffer*/
+	int fdp_outlen;     /*length of output message*/
+	int fdp_discard;/*buffer overflow: output message is incomplete, discard it*/
+	int fdp_gotsemi;/*last char from input was a semicolon*/
+} t_fdpoll;
 
+typedef struct {
+	const char *path;
+    time_t last_modify_time;
+} SourceObject;
+
+typedef struct Glslr_ Glslr;
+
+
+void udpmakeoutput(char *buf, Glslr *gx);
+void sockerror(const char *s);
+void x_closesocket(int fd);
+void dopoll(Glslr *gx);
 int Glslr_HostInitialize(void);
 void Glslr_HostDeinitialize(void);
-
 size_t Glslr_InstanceSize(void);
 int Glslr_Construct(Glslr *gx);
 void Glslr_Destruct(Glslr *gx);

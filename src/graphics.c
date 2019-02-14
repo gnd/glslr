@@ -84,7 +84,7 @@ struct Graphics_ {
     GLuint sony_texture_object;
     GLuint sony_texture_unit;
 	Scaling window_scaling;
-	Scaling primary_framebuffer; /* TODO */
+	Scaling primary_framebuffer;
 };
 
 
@@ -778,7 +778,7 @@ int Graphics_AllocateOffscreen(Graphics *g)
 		                              g->texture_wrap_mode);
 		/* TODO: handle error */
 	}
-    glGenTextures(3, g->textures); //TODO: seems like a mess with texture ids
+    glGenTextures(3, g->textures);
     g->sony_texture_object = g->textures[0];
     g->video_texture_object = g->textures[1];
     g->backbuffer_texture_object = g->textures[2];

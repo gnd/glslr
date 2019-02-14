@@ -5,7 +5,7 @@
 **glslr** enables GLSL code-reuse across projects with its #include support.  
 **glslr** now has experimental Video4Linux support.  
 
-##Installation:
+## Installation:
 
 On Ubuntu its enough to install libgles2-mesa-dev and libglfw3-dev:
 ```
@@ -15,7 +15,7 @@ cd glslr
 make
 ```
 
-##Usage:
+## Usage:
 ```
 usage: glslr [options] <layer0.glsl> [layer1.glsl] [layer2.glsl] ...
 options:
@@ -46,7 +46,7 @@ options:
   video:
     --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)
 ```
-##Usage with network:
+## Usage with network:
 ```
 glslr --net --port [port] --params N example.glsl
 ```
@@ -54,14 +54,14 @@ glslr --net --port [port] --params N example.glsl
 The parameters must be sent via UDP to the [port] in the form: *"param0 param1 param2 ... paramN;"*.  
 A reference is to use PureData's object [netsend]. Currently only integer and float variables are supported.
 
-##Usage with video:
+## Usage with video:
 
 **glslr** makes it possible to use experimental live video input from a V4L device. Currently only YUV422 devices are supported. The image is raw YUV422 - conversion into RGBA is up to you in the shader.
 ```
 glslr --vdev [video device number] example.glsl
 ```
 Provide the video device number to be able to use it in the shader. Default is 0 which expands to /dev/video0.  
-Eg. if you want to use /dev/video1 do: 
+Eg. if you want to use /dev/video1 do:
 
 ```
 glslr --vdev 1 example.glsl
@@ -103,7 +103,7 @@ void main(void) {
 
 	//#include function.glsl  
     // ^^^ this line will be replaced with contents of the function.glsl file
-	
+
 	gl_FragColor = vec4(c, 1.0);
 }
 ```
@@ -112,4 +112,3 @@ void main(void) {
 **glslr** is a fork of pijockey-sound (https://github.com/gnd/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of PiJockey by sharrow.  
 **glslr** was ported to x86, using GLFW. The Video4Linux capability was scrambled from **glutcam** by George Koharchik.  
 **glslr** is being occasionally developed (when preparing for a new performance) by gnd ♥ itchybit.org.
-
