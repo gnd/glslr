@@ -27,41 +27,7 @@ typedef struct {
 
 JpegDec_t jpeg_dec;
 
-struct Glslr_ {
-	Graphics *graphics;
-	Graphics_LAYOUT layout_backup;
-    Sourceparams_t sourceparams;
-    Videocapabilities_t capabilities;
-    JpegMemory_t mem;
-    CURL *curl_handle;
-    pthread_t thread;
-    bool sony_thread_active;
-	int is_fullscreen;
-	int use_backbuffer;
-    int use_video;
-    int use_sony;
-	int use_tcp;
-	int use_net;
-	int port;
-	struct {
-		int x, y;
-		int fd;
-	} mouse;
-	netin_val *net_input_val;
-	int net_params;
-    int video_dev_num;
-    char video_device[12];
-	double time_origin;
-	unsigned int frame;         /* TODO: move to graphics */
-	struct {
-		int debug;
-		int render_time;
-	} verbose;
-	struct {
-		int numer;
-		int denom;
-	} scaling;
-};
+
 
 typedef struct _fdpoll {
 	int fdp_fd;
@@ -354,7 +320,7 @@ int Glslr_Construct(Glslr *gx)
     //gx->video_device = NULL;
 	gx->time_origin = GetCurrentTimeInMilliSecond();
 	gx->frame = 0;
-	gx->verbose.render_time = 1;
+	gx->verbose.render_time = 0;
 	gx->verbose.debug = 0;
 	gx->scaling.numer = scaling_numer;
 	gx->scaling.denom = scaling_denom;
@@ -374,10 +340,7 @@ int Glslr_Construct(Glslr *gx)
 	jpeg_dec.size = 0;
 	jpeg_dec.channels = 0;
 
-	// setup libcurl
-	curl_global_init(CURL_GLOBAL_ALL);
-	gx->mem.curl_handle  = curl_easy_init();
-	curl_easy_setopt(gx->mem.handle, CURLOPT_URL, "http://192.168.122.1:60152/liveview.JPG?!1234!http-get:*:image/jpeg:*!!!!!");
+	pthread_mutex_init(&video_mutex, NULL);
 
 	return 0;
 }
@@ -1061,7 +1024,6 @@ size_t Glslr_InstanceSize(void)
 
 int Glslr_Main(Glslr *gx)
 {
-
 	pthread_create(&gx->thread, NULL, &getJpegData, &gx->mem);
 	Glslr_PrepareMainLoop(gx);
 	Glslr_MainLoop(gx);

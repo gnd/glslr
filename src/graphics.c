@@ -419,7 +419,7 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	layer->attr.resolution = glGetUniformLocation(layer->program, "resolution");
 	layer->attr.backbuffer = glGetUniformLocation(layer->program, "backbuffer");
     layer->attr.video = glGetUniformLocation(layer->program, "video");
-    layer->attr.video = glGetUniformLocation(layer->program, "sony");
+    layer->attr.sony = glGetUniformLocation(layer->program, "sony");
 	layer->attr.rand= glGetUniformLocation(layer->program, "rand");
 
 	layer->attr.prev_layer = glGetUniformLocation(layer->program, "prev_layer");
@@ -512,8 +512,8 @@ void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams) {
     // this can be switched in realtime (TODO)g->jpeg_dec.
     //g->displaydata.internal_format = (GLint)GL_RGBA;
     //g->displaydata.pixelformat = (GLenum)GL_RGBA;
-    g->displaydata.internal_format = (GLint)GL_RG;
-    g->displaydata.pixelformat = (GLenum)GL_RG;
+    g->displaydata.internal_format = (GLint)GL_RGB;
+    g->displaydata.pixelformat = (GLenum)GL_RGB;
 }
 
 static int Graphics_SetupInitialState(Graphics *g)
@@ -778,9 +778,11 @@ int Graphics_AllocateOffscreen(Graphics *g)
 		                              g->texture_wrap_mode);
 		/* TODO: handle error */
 	}
-    glGenTextures(2, g->textures); //TODO: seems like a mess with texture ids
-    g->video_texture_object = g->textures[0];
-    g->backbuffer_texture_object = g->textures[1];
+    glGenTextures(3, g->textures); //TODO: seems like a mess with texture ids
+    g->sony_texture_object = g->textures[0];
+    g->video_texture_object = g->textures[1];
+    g->backbuffer_texture_object = g->textures[2];
+
     if (g->enable_sony) {
         GLint internal_format = (GLint)g->displaydata.internal_format;
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
@@ -789,7 +791,8 @@ int Graphics_AllocateOffscreen(Graphics *g)
         glTexImage2D(GL_TEXTURE_2D,
                      0,
                      internal_format,
-                     g->displaydata.texture_width, g->displaydata.texture_height,
+                     //g->displaydata.texture_width, g->displaydata.texture_height,
+                     640, 360,
                      0,
                      pixelformat,
                      GL_UNSIGNED_BYTE,
@@ -937,7 +940,7 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 			glBindTexture(GL_TEXTURE_2D, g->video_texture_object);
 		}
         if (g->enable_sony) {
-			glUniform1i(p->attr.video, g->sony_texture_unit);
+			glUniform1i(p->attr.sony, g->sony_texture_unit);
 			glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
 			glBindTexture(GL_TEXTURE_2D, g->sony_texture_object);
 		}
@@ -1024,7 +1027,8 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		glTexImage2D(GL_TEXTURE_2D,
                      0,             /* level */
                      internal_format,
-                     g->displaydata.texture_width, g->displaydata.texture_height,
+                     //g->displaydata.texture_width, g->displaydata.texture_height,
+                     640, 360,
                      0,             /* border */
                      pixelformat,
                      GL_UNSIGNED_BYTE,

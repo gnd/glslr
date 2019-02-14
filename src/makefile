@@ -1,3 +1,6 @@
+# GLSLR - lightweight livecoding environment
+TARGET=glslr
+DEBUG=no
 CC=gcc
 
 CFLAGS =-Wall
@@ -9,9 +12,9 @@ CFLAGS+=-Wcast-align
 ifeq (yes, $(DEBUG))
   CFLAGS+=-g
 else
-  CFLAGS+=-g -O2 -s
+  CFLAGS+=-O2 -s
 endif
-CFLAGS += -DPLATFORM_LINUX $(shell pkg-config --cflags glfw3 glu gl) 
+#CFLAGS += -DPLATFORM_LINUX $(shell pkg-config --cflags glfw3 glu gl)
 
 #LIBS+=-lGLESv2
 LIBS+=-lglfw
@@ -31,8 +34,6 @@ LIBS+=-ldl
 LIBS+=-lcurl
 LIBS+=-ljpeg
 
-TARGET=glslr
-
 SOURCES =main.c
 SOURCES+=glslr.c
 SOURCES+=graphics.c
@@ -41,7 +42,6 @@ SOURCES+=v4l2_controls.c
 SOURCES+=sony.c
 
 OBJECTS=$(subst .c,.o, $(SOURCES))
-
 
 all: $(TARGET)
 

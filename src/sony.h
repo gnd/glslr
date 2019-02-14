@@ -22,6 +22,5 @@ typedef struct JpegDec_s {
 
 extern pthread_mutex_t video_mutex;
 extern JpegDec_t jpeg_dec;
-void *getJpegData(void *memory);
-static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void* userp);
+static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void *userp);
 void LoadJPEG(const unsigned char * imgdata, JpegDec_t* jpeg_dec, size_t jpeg_size);

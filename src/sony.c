@@ -8,24 +8,12 @@
 #include <pthread.h>
 #include "sony.h"
 
-void *getJpegData(void *memory) {
-    JpegMemory_t *mem = (JpegMemory_t *)memory;
-
-    curl_easy_setopt(mem->curl_handle, CURLOPT_NOSIGNAL, 1);
-    curl_easy_setopt(mem->curl_handle, CURLOPT_WRITEFUNCTION, SonyCallback);
-    curl_easy_setopt(mem->curl_handle, CURLOPT_WRITEDATA, mem);
-    curl_easy_perform(mem->curl_handle);
-    curl_easy_cleanup(mem->curl_handle);
-    curl_global_cleanup();
-
-    // make gcc happy
-    return 0;
-}
-
-
-static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void* userp) {
+static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
     size_t realsize = size * nmemb;
     JpegMemory_t *mem = (JpegMemory_t *)userp;
+
+    //printf("entenring callback\n");
 
     mem->memory = realloc(mem->memory, mem->size + realsize + 1);
     if(mem->memory == NULL) {
@@ -45,7 +33,7 @@ static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void* user
     }
 
     // read the jpeg data
-    if ((mem->size == 136 + mem->jpeg_size) && mem->header_found) {
+    if ((mem->size >= 136 + mem->jpeg_size) && mem->header_found) {
         // Lock mem and read data
         pthread_mutex_lock(&video_mutex);
         LoadJPEG(&mem->memory[136], &jpeg_dec, mem->jpeg_size);
@@ -58,6 +46,33 @@ static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void* user
     return realsize;
 }
 
+void *getJpegData(void *memory) {
+    JpegMemory_t *mem = (JpegMemory_t *)memory;
+
+    CURLcode res;
+    char errbuf[CURL_ERROR_SIZE];
+    curl_easy_setopt(mem->curl_handle, CURLOPT_ERRORBUFFER, errbuf);
+    errbuf[0] = 0;
+
+    curl_easy_setopt(mem->curl_handle, CURLOPT_NOSIGNAL, 1);
+    curl_easy_setopt(mem->curl_handle, CURLOPT_WRITEFUNCTION, SonyCallback);
+    curl_easy_setopt(mem->curl_handle, CURLOPT_WRITEDATA, mem);
+    res = curl_easy_perform(mem->curl_handle);
+    if(res != CURLE_OK) {
+    size_t len = strlen(errbuf);
+    fprintf(stderr, "\nlibcurl: (%d) ", res);
+    if(len)
+      fprintf(stderr, "%s%s", errbuf,
+              ((errbuf[len - 1] != '\n') ? "\n" : ""));
+    else
+      fprintf(stderr, "%s\n", curl_easy_strerror(res));
+  }
+    curl_easy_cleanup(mem->curl_handle);
+    curl_global_cleanup();
+
+    // make gcc happy
+    return 0;
+}
 
 void LoadJPEG(const unsigned char * imgdata, JpegDec_t* jpeg_dec, size_t jpeg_size) {
   struct jpeg_decompress_struct info;
@@ -81,7 +96,6 @@ void LoadJPEG(const unsigned char * imgdata, JpegDec_t* jpeg_dec, size_t jpeg_si
   unsigned char* p1 = jpeg_dec->data;
   unsigned char** p2 = &p1;
   int numlines = 0;
-
   while(info.output_scanline < info.output_height) {
     numlines = jpeg_read_scanlines(&info, p2, 1);
     *p2 += numlines * 3 * info.output_width;

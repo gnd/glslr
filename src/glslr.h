@@ -31,6 +31,50 @@
 #include <netdb.h>
 #include <curl/curl.h>
 
+typedef struct JpegMemory_s {
+    CURL *curl_handle;
+    unsigned char *memory;
+    char *size_string;
+    size_t size;
+    size_t jpeg_size;
+    bool header_found;
+} JpegMemory_t;
+
+struct Glslr_ {
+	Graphics *graphics;
+	Graphics_LAYOUT layout_backup;
+    Sourceparams_t sourceparams;
+    Videocapabilities_t capabilities;
+    JpegMemory_t mem;
+    pthread_t thread;
+    bool sony_thread_active;
+	int is_fullscreen;
+	int use_backbuffer;
+    int use_video;
+    int use_sony;
+	int use_tcp;
+	int use_net;
+	int port;
+	struct {
+		int x, y;
+		int fd;
+	} mouse;
+	netin_val *net_input_val;
+	int net_params;
+    int video_dev_num;
+    char video_device[12];
+	double time_origin;
+	unsigned int frame;         /* TODO: move to graphics */
+	struct {
+		int debug;
+		int render_time;
+	} verbose;
+	struct {
+		int numer;
+		int denom;
+	} scaling;
+};
+
 typedef struct Glslr_ Glslr;
 void udpmakeoutput(char *buf, Glslr *gx);
 
@@ -48,12 +92,3 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
 
 // TODO define in only one headerfile
 void *getJpegData(void *memory);
-typedef struct JpegMemory_s {
-    CURL *curl_handle;
-    unsigned char *memory;
-    char *size_string;
-    size_t size;
-    size_t jpeg_size;
-    bool header_found;
-    CURL *handle;
-} JpegMemory_t;
