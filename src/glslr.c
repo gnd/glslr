@@ -685,6 +685,7 @@ static int Glslr_PrepareMainLoop(Glslr *gx)
 
 static void Glslr_MainLoop(Glslr *gx)
 {
+	// TODO make this resilient to arrows and other 'special' chars
 	for (;;) {
 		switch (getchar()) {
 		case 'Q':

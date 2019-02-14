@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #define GL_GLEXT_PROTOTYPES
 #include <GLFW/glfw3.h>
@@ -166,40 +167,81 @@ void Graphics_HostDeinitialize(void)
 {
 }
 
-// FIXME !!!
+// taken from: https://stackoverflow.com/questions/32413667/replace-all-occurrences-of-a-substring-in-a-string-in-c
+void str_replace(char *target, const char *needle, const char *replacement)
+{
+    char buffer[1024] = { 0 };
+    char *insert_point = &buffer[0];
+    const char *tmp = target;
+    size_t needle_len = strlen(needle);
+    size_t repl_len = strlen(replacement);
+
+    while (1) {
+        const char *p = strstr(tmp, needle);
+
+        // walked past last occurrence of needle; copy remaining part
+        if (p == NULL) {
+            strcpy(insert_point, tmp);
+            break;
+        }
+
+        // copy part before needle
+        memcpy(insert_point, tmp, p - tmp);
+        insert_point += p - tmp;
+
+        // copy replacement string
+        memcpy(insert_point, replacement, repl_len);
+        insert_point += repl_len;
+
+        // adjust pointers, move on
+        tmp = p + needle_len;
+    }
+
+    // write altered string back to target
+    strcpy(target, buffer);
+}
+
 static void PrintShaderLog(const char *message, GLuint shader, int before, int included)
 {
-    char *a, *aa, *line_str;
-    int line_num, in_include = 0;
+    char *tmp, *beg, *end, *old_line_num, *new_line_num;
+    long line_num = 0;
+    bool in_include = false;
 	GLchar build_log[512];
 
     glGetShaderInfoLog(shader, sizeof(build_log), NULL, build_log);
     if (!before && !included) {
-        printf("%s %d: %s\n", message, shader, build_log);
-    } else { // compute the real line number in the layer source file
-        fprintf(stderr, "BUILDLOG: %s\n", build_log);
-        a = strstr(build_log, ":");
-        aa = strstr(build_log, "(");
-        // WTF do u think you are doing here ?? srly..
-        line_num = strtol(a+1,NULL,10);
-        //fprintf(stderr, "linenum: %d\n", line_num);
+        printf("Error in \033[32minmain\033[0m (%s):\n%s\n", message, build_log);
+    } else {
+        tmp = malloc(strlen(build_log) + 1);
+        strcpy(tmp, build_log);
+        beg = strstr(tmp, ":");
+        end = strstr(tmp, "(");
+        *beg = ' ';
+        *end = '\0';
+        line_num = strtol(beg, NULL, 10);
+        old_line_num = malloc(strlen(beg) + 1);
+        sprintf(old_line_num, "%ld", line_num);
+
+        // determine the real line number and if the error is in include or not
         if (line_num > (before + included)) {
-            line_num = line_num - included + 1;
+            line_num -= (included+1);
         } else {
             if (line_num > before) {
-                line_num = line_num - before;
-                in_include = 1;
+                line_num -= before;
+                in_include = true;
             }
         }
-        //fprintf(stderr, "before: %d\n", before);
-        //fprintf(stderr, "in include: %d\n", in_include);
-        line_str = malloc((10 + aa-a) * sizeof(char));  //should not be bigger than 10 digits
-        sprintf(line_str, "%d%s", line_num, aa);
-        strcpy(a+1, line_str);
+
+        new_line_num = malloc(strlen(beg) + 1);
+        sprintf(new_line_num, "%ld", line_num);
+
+        // replace the line numbers in build_log
+        str_replace(build_log, old_line_num, new_line_num);
+
         if (!in_include) {
-            printf("%s %d: %s\n", message, shader, build_log);
+            printf("Error in \033[32minmain\033[0m (%s):\n%s\n", message, build_log);
         } else {
-            printf("%s %d: %s %s\n", message, shader, "in include:", build_log);
+            printf("Error in \033[32minclude\033[0m (%s):\n%s\n", message, build_log);
         }
     }
 }
