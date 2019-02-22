@@ -564,6 +564,7 @@ static void Glslr_Render(Glslr *gx)
 	Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
 
 	//TODO see if possible to have also sony time
+	//TODO print timestamp in front of stats in second precision
 	if (gx->verbose.render_time) {
         if (gx->use_video == 1) {
 			ms = GetCurrentTimeInMilliSecond() - vs;
@@ -829,6 +830,7 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
         new_code[newlen-1] = '\0';
         strcpy(code, new_code);
         *len = newlen;
+		// TODO UGH OMG LOL
         fp = fopen("/tmp/kakinko", "w");
         fputs(new_code, fp);
         fclose(fp);

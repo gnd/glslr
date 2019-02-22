@@ -201,6 +201,7 @@ void str_replace(char *target, const char *needle, const char *replacement)
     strcpy(target, buffer);
 }
 
+// TODO print also current timestamp with the error
 static void PrintShaderLog(const char *message, GLuint shader, int before, int included)
 {
     char *tmp, *beg, *end, *old_line_num, *new_line_num;
@@ -800,6 +801,7 @@ int Graphics_ApplyWindowScalingChange(Graphics *g)
 	return Graphics_ApplyWindowChange(g);
 }
 
+//TODO on keypress make screenshot of the current state (place this to the correct place)
 int Graphics_AllocateOffscreen(Graphics *g)
 {
 	int i;
