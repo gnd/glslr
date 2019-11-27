@@ -14,7 +14,7 @@
 
 /* TODO
 * - make the windowed / fullscreen behaviour on keypress
-* - fix behavior on manual resize
+* - TODO !!!!!! fix behavior on manual resize / mouse fullscreen
 */
 
 
@@ -202,6 +202,7 @@ void str_replace(char *target, const char *needle, const char *replacement)
 }
 
 // TODO print also current timestamp with the error
+// TODO find out why different log format
 static void PrintShaderLog(const char *message, GLuint shader, int before, int included)
 {
     char *tmp, *beg, *end, *old_line_num, *new_line_num;
@@ -210,26 +211,52 @@ static void PrintShaderLog(const char *message, GLuint shader, int before, int i
 	GLchar build_log[512];
 
     glGetShaderInfoLog(shader, sizeof(build_log), NULL, build_log);
+    /*
+    printf("-------------------------------\n");
+    printf("%s\n", build_log);
+    printf("-------------------------------\n\n");
+    */
+
     if (!before && !included) {
         printf("Error in \033[32mmain\033[0m (%s):\n%s\n", message, build_log);
     } else {
+        /* the following is for log format like this - NVIDIA
+        0(586) : warning C1503: undefined variable "cwo"
+        0(586) : error C1008: undefined variable "cwo"
+        */
+
+        /* TODO there is also intel log format ..
+        0:586(21): error: `cwo' undeclared
+        0:586(5): error: no matching function for call to `circ(float, float, float, error)'; candidates are:
+        0:586(5): error:    vec3 circ(float, float, float, vec3)
+        0:586(2): error: operands to arithmetic operators must be numeric
+        0:586(2): error: could not implicitly convert error to vec3
+        */
+
+        // TODO is there a way to get the linenumber regardless of the format ?
         tmp = malloc(strlen(build_log) + 1);
         strcpy(tmp, build_log);
-        beg = strstr(tmp, ":");
-        end = strstr(tmp, "(");
+        beg = strstr(tmp, "(");
+        end = strstr(tmp, ")");
         *beg = ' ';
         *end = '\0';
         line_num = strtol(beg, NULL, 10);
+        //printf("Line num: %ld\n", line_num);
         old_line_num = malloc(strlen(beg) + 1);
-        sprintf(old_line_num, "%ld", line_num);
+        //sprintf(old_line_num, "%ld", line_num);
 
         // determine the real line number and if the error is in include or not
         if (line_num > (before + included)) {
+            //printf("[0] Line num: %ld before %d included %d\n", line_num, before, included);
             line_num -= (included-1);
         } else {
+            //printf("[1] Line num: %ld before %d included %d\n", line_num, before, included);
             if (line_num > before) {
+                //printf("[2] Line num: %ld before %d included %d\n", line_num, before, included);
                 line_num -= before;
                 in_include = true;
+            } else {
+                line_num -= 1;
             }
         }
 
@@ -420,6 +447,8 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 		PrintShaderLog("fragment_shader", layer->fragment_shader, layer->attr.lines_before_include, layer->attr.lines_included);
 		return 2;
 	}
+    // Report success
+    printf("Shader \033[32mOK\033[0m\n");
 
 	new_program = glCreateProgram();
 	glAttachShader(new_program, vertex_shader);
@@ -433,7 +462,6 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 
 	glDeleteProgram(layer->program);
 	layer->program = new_program;
-
 
 	glUseProgram(layer->program);
 	layer->attr.vertex_coord = glGetAttribLocation(layer->program, "vertex_coord");
@@ -457,7 +485,6 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 		i--;
 	}
 	layer->attr.net_input_addr = next;
-
 	layer->attr.mouse = glGetUniformLocation(layer->program, "mouse");
 	layer->attr.resolution = glGetUniformLocation(layer->program, "resolution");
 	layer->attr.backbuffer = glGetUniformLocation(layer->program, "backbuffer");
@@ -820,7 +847,7 @@ int Graphics_AllocateOffscreen(Graphics *g)
 		                              g->texture_pixel_format,
 		                              g->texture_interpolation_mode,
 		                              g->texture_wrap_mode);
-		/* TODO: handle error */
+                                      /* TODO: handle error */
 	}
     glGenTextures(3, g->textures);
     g->sony_texture_object = g->textures[0];
