@@ -231,6 +231,7 @@ static double GetCurrentTimeInMilliSecond(void)
 	return tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
 }
 
+// TODO change this so that also "included" code is checked for changes
 static int GetLastFileModifyTime(const char *file_path, time_t *out_mod_time)
 {
 	struct stat sb;
@@ -544,7 +545,6 @@ static void Glslr_SetUniforms(Glslr *gx)
 	Graphics_GetWindowSize(gx->graphics, &width, &height);
 	mouse_x = (double)gx->mouse.x / width;
 	mouse_y = (double)gx->mouse.y / height;
-	//printf("mousex: %d\n", gx->mouse.x);
 
 	Graphics_SetUniforms(gx->graphics, t / 1000.0,
 	                     gx->net_input_val,
@@ -563,6 +563,7 @@ static void Glslr_Render(Glslr *gx)
     }
 	Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
 
+	//TODO render time works pretty weirdly, gets different results compared to nSight
 	//TODO see if possible to have also sony time
 	//TODO print timestamp in front of stats in second precision
 	if (gx->verbose.render_time) {
@@ -686,7 +687,6 @@ static int Glslr_PrepareMainLoop(Glslr *gx)
 
 static void Glslr_MainLoop(Glslr *gx)
 {
-	// TODO make this resilient to arrows and other 'special' chars
 	for (;;) {
 		switch (getchar()) {
 		case 'Q':
@@ -695,7 +695,6 @@ static void Glslr_MainLoop(Glslr *gx)
 		case VINTR:     /* Ctrl+c */
 		case 0x7f:      /* Ctrl+c */
 		case 0x03:      /* Ctrl+c */
-		case 0x1b:      /* ESC */
 			printf("\nexit\n");
 			goto goal;
 		case ']':
@@ -762,7 +761,8 @@ static int Glslr_AppendLayer(Glslr *gx, const char *path)
 	return 0;
 }
 
-void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *lines_included) //TODO: Clean this up
+//TODO: Clean this up
+void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *lines_included)
 {
     FILE *fp;
     char inc_code[MAX_SOURCE_BUF];
@@ -793,10 +793,12 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
         while ((c[i] != EOF) && (c[i] != '\n')) {
             i++;
         }
+
         filename = (char *)malloc((i+1) * sizeof(char));
         strncpy(filename, c, i);
         filename[i] = '\0';
-        // move size of filename
+
+		// move size of filename
         for (int j=0; j<i; j++) {
             c++;
         }
@@ -830,12 +832,15 @@ void Glslr_IncludeAdditionalCode(char *code, int *len, int *lines_before, int *l
         new_code[newlen-1] = '\0';
         strcpy(code, new_code);
         *len = newlen;
+
 		// TODO UGH OMG LOL
         fp = fopen("/tmp/kakinko", "w");
         fputs(new_code, fp);
         fclose(fp);
     }
 }
+
+
 int Glslr_GetLineCount(char *code, size_t size)
 {
     unsigned int i = 0;
