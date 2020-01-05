@@ -493,11 +493,15 @@ void Graphics_Delete(Graphics *g)
 	free(g);
 }
 
+#ifdef VIDEO
 void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams) {
     g->displaydata.window_width = sourceparams->image_width;
     g->displaydata.window_height = sourceparams->image_height;
     g->displaydata.texture_width = sourceparams->image_width;
     g->displaydata.texture_height = sourceparams->image_height;
+#else
+void Graphics_InitDisplayData(Graphics *g) {
+#endif
     g->displaydata.bytes_per_pixel = 2;                 // int 2 for YUV422
     // this can be switched in realtime (TODO)g->jpeg_dec.
     //g->displaydata.internal_format = (GLint)GL_RGBA;
@@ -509,6 +513,13 @@ void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams) {
 static int Graphics_SetupInitialState(Graphics *g)
 {
 	CHECK_GL();
+
+    #ifdef OSX
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #endif
 
 	if (g->array_buffer_fullscene_quad == 0) {
 		static const GLfloat fullscene_quad[] = {
@@ -618,6 +629,9 @@ void Graphics_SetupViewport(Graphics *g) {
     glfwSetWindowPos(g->window, xpos, ypos);
     Graphics_setWindowSize(g->viewport.z, g->viewport.z);
     glfwMakeContextCurrent(g->window);
+#ifdef OSX
+    glewInit();
+#endif
     glfwSetWindowSizeCallback(g->window, handleResize);
     glfwSwapInterval(1);
 
@@ -771,8 +785,12 @@ int Graphics_AllocateOffscreen(Graphics *g)
 	}
     glGenTextures(3, g->textures);
     g->sony_texture_object = g->textures[0];
+#ifdef VIDEO
     g->video_texture_object = g->textures[1];
     g->backbuffer_texture_object = g->textures[2];
+#else
+    g->backbuffer_texture_object = g->textures[1];
+#endif
 
     if (g->enable_sony) {
         GLint internal_format = (GLint)g->displaydata.internal_format;
@@ -795,6 +813,7 @@ int Graphics_AllocateOffscreen(Graphics *g)
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
         glBindTexture(GL_TEXTURE_2D, 0);                        // fix this too
     }
+#ifdef VIDEO
     if (g->enable_video) {
         GLint internal_format = (GLint)g->displaydata.internal_format;
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
@@ -815,12 +834,17 @@ int Graphics_AllocateOffscreen(Graphics *g)
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
         glBindTexture(GL_TEXTURE_2D, 0);                        // fix this too
     }
+#endif
 	if (g->enable_backbuffer) {
 		GLint internal_format;
 		GLenum format;
 		GLenum type;
 		DeterminePixelFormat(g->texture_pixel_format, &internal_format, &format, &type);
+#ifdef VIDEO
         g->backbuffer_texture_unit = (g->num_render_layer * 2) + 2;
+#else
+        g->backbuffer_texture_unit = (g->num_render_layer * 2) + 1;
+#endif
 		glBindTexture(GL_TEXTURE_2D, g->backbuffer_texture_object);
 		glTexImage2D(GL_TEXTURE_2D,
 		             0,
@@ -908,7 +932,11 @@ void Graphics_SetUniforms(Graphics *g, double t,
 	CHECK_GL();
 }
 
+#ifdef VIDEO
 void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg_dec) {
+#else
+void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
+#endif
 	int i;
 	GLuint prev_layer_texture_unit;
 	GLuint prev_layer_texture_object;
@@ -925,11 +953,13 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 			glActiveTexture(GL_TEXTURE0 + g->backbuffer_texture_unit);
 			glBindTexture(GL_TEXTURE_2D, g->backbuffer_texture_object);
 		}
+        #ifdef VIDEO
         if (g->enable_video) {
 			glUniform1i(p->attr.video, g->video_texture_unit);
 			glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
 			glBindTexture(GL_TEXTURE_2D, g->video_texture_object);
 		}
+        #endif
         if (g->enable_sony) {
 			glUniform1i(p->attr.sony, g->sony_texture_unit);
 			glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
@@ -983,7 +1013,7 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		glActiveTexture(GL_TEXTURE0 + g->backbuffer_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
-
+#ifdef VIDEO
     if (g->enable_video) {
         //int texture_size;
         //g->displaydata.bytes_per_pixel = 2;
@@ -1009,6 +1039,7 @@ void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg
 		glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
+#endif
     if (g->enable_sony) {
         GLint internal_format = (GLint)g->displaydata.internal_format;
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;

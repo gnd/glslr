@@ -2,6 +2,7 @@
 TARGET=glslr
 LINUX=yes
 MACOS=no
+VIDEO=no
 DEBUG=no
 CC=gcc
 
@@ -12,12 +13,16 @@ ifeq ($(OS),Windows_NT)
 else
     UNAME_S := $(shell uname -s)
     ifeq ($(UNAME_S),Linux)
-        CFLAGS += -DLINUX
+        CFLAGS = -DLINUX
+		ifeq (yes, $(VIDEO))
+          CFLAGS += -DVIDEO
+		endif
     endif
     ifeq ($(UNAME_S),Darwin)
         MACOS=yes
         LINUX=no
-        CFLAGS += -DOSX
+        VIDEO=no
+        CFLAGS = -DOSX
     endif
 endif
 
@@ -71,9 +76,11 @@ endif
 SOURCES =main.c
 SOURCES+=glslr.c
 SOURCES+=graphics.c
-SOURCES+=v4l2.c
-SOURCES+=v4l2_controls.c
 SOURCES+=sony.c
+ifeq (yes, $(VIDEO))
+  SOURCES+=v4l2.c
+  SOURCES+=v4l2_controls.c
+endif
 
 # Define some objects
 OBJECTS=$(subst .c,.o, $(SOURCES))
