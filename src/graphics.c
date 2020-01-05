@@ -609,7 +609,9 @@ static int Graphics_SetupInitialState(Graphics *g)
 	if (g->vertex_shader == 0) {
 		GLint param;
 		static const GLchar *vertex_shader_source =
-		    "attribute vec4 vertex_coord;"
+            "#version 150"
+            ""
+		    "in vec4 vertex_coord;"
 		    "void main(void) { gl_Position = vertex_coord; }";
 		g->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(g->vertex_shader, 1, &vertex_shader_source, NULL);
