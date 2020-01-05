@@ -440,6 +440,11 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	int i;
 	char name[5]; /* MAX 99 ! */
 
+    // Activate vertex attributes array
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
 	CHECK_GL();
 	glCompileShader(layer->fragment_shader);
 	glGetShaderiv(layer->fragment_shader, GL_COMPILE_STATUS, &param);
@@ -605,20 +610,18 @@ static int Graphics_SetupInitialState(Graphics *g)
 		CHECK_GL();
 	}
 
-
 	if (g->vertex_shader == 0) {
 		GLint param;
 		static const GLchar *vertex_shader_source =
-            "#version 150"
-            ""
-		    "in vec4 vertex_coord;"
+            "#version 330\n"
+		    "in vec4 vertex_coord;\n"
 		    "void main(void) { gl_Position = vertex_coord; }";
 		g->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 		glShaderSource(g->vertex_shader, 1, &vertex_shader_source, NULL);
 		glCompileShader(g->vertex_shader);
 		glGetShaderiv(g->vertex_shader, GL_COMPILE_STATUS, &param);
 		if (param != GL_TRUE) {
-			PrintShaderLog("vertex_shader", g->vertex_shader, g->render_layer->attr.lines_before_include, g->render_layer->attr.lines_included);
+			PrintShaderLog("vertex_shader", g->vertex_shader, 0, 0);
 			assert(0);
 			return 1;
 		}
