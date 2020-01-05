@@ -1,4 +1,4 @@
-#version 330 
+#version 330
 
 // from http://glsl.heroku.com/e#5205.0
 // modified(light-weighted) for raspberry-pi
@@ -10,7 +10,7 @@ precision mediump float;
 uniform float time;
 uniform vec2 mouse;
 uniform vec2 resolution;
-
+out vec4 PixelColor;
 
 // Helper constants
 #define F2 0.366025403
@@ -119,5 +119,5 @@ void main( void ) {
   float n1 = srdnoise(p*0.5, 0.2*time, g1);
   float n2 = srdnoise(p*2.0 + g1*0.5, 0.51*time, g2);
   float n3 = srdnoise(p*4.0 + g1*0.5 + g2*0.25, 0.77*time, g2);
-  gl_FragColor = vec4(vec3(0.4, 0.5, 0.6) + vec3(n1+0.75*n2+0.5*n3), 1.0);
+  PixelColor = vec4(vec3(0.4, 0.5, 0.6) + vec3(n1+0.75*n2+0.5*n3), 1.0);
 }

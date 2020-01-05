@@ -1,4 +1,4 @@
-#version 330 
+#version 330
 
 /* Normal Map Stuff */
 /* By: Flyguy */
@@ -18,6 +18,7 @@ precision mediump float;
 uniform float time;
 uniform vec2 mouse;
 uniform vec2 resolution;
+out vec4 PixelColor;
 
 uniform vec2 surfaceSize;
 varying vec2 surfacePosition;
@@ -32,7 +33,7 @@ float heightmap(vec2 position)
 		float c = cos(2.*PI*g);
 		float s = sin(2.*PI*g);
 		mat2 matcs = mat2(c,s,-s,c)*g;
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 12; i++) {
 			vec2 v = fract(position + timevec)-.5;
 			float dots = max(0.,.13-dot(v,v));
 			dots = dots*dots*dots/f*8.;
@@ -51,10 +52,10 @@ void main( void ) {
 	n2 = heightmap(vec2(pos.x-1.0,pos.y));
 	n3 = heightmap(vec2(pos.x+1.0,pos.y));
 	n4 = heightmap(vec2(pos.x,pos.y+1.0));
-	vec3 p2m = vec3(-((pos/resolution)-mouse)*resolution,resolution.x*.4);
+	vec3 p2m = vec3(-((pos/resolution)+sin(time/3.))*resolution,resolution.x*.4);
 	vec3 normal = normalize(vec3(n2-n3, n1-n4, 0.4));
 	float color = dot(normal, normalize(p2m))*.5+.5;
 	vec3 colorvec = vec3(pow(color,10.),pow(color,5.),pow(color,2.5));
 	float brightness = 1./sqrt(1.+pow(distance(mouse*resolution,pos)/resolution.x*8.,2.));
-	gl_FragColor = vec4( colorvec*brightness, 1.0 );
+	PixelColor = vec4( colorvec*brightness, 1.0 );
 }
