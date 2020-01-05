@@ -1,3 +1,5 @@
+#version 330 
+
 /* original source from http://glsl.heroku.com/e#5014.0 */
 /* modified(light-weighted) for Raspberry Pi */
 
@@ -33,7 +35,7 @@ void main(void)
 {
  vec2 p = -1.0 + 2.0 * gl_FragCoord.xy / resolution.xy;
  p.x *= resolution.x/resolution.y;
- 
+
  vec3 org=vec3(sin(time)*0.5,0.25,time*2.0),dir=normalize(vec3(p.x*1.6,p.y,1.0)), q;
  float d;
 

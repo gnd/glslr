@@ -1,3 +1,5 @@
+#version 330 
+
 /* from http://glsl.heroku.com/e#5254.1 */
 
 #ifdef GL_ES

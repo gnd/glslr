@@ -1,4 +1,4 @@
-// from: http://glsl.heroku.com/e#3259.0
+#version 330 
 #ifdef GL_ES
 precision mediump float;
 #endif
@@ -8,7 +8,7 @@ uniform vec2 mouse;
 uniform vec2 resolution;
 
 void main( void ) {
-	 
+
 	 vec2 p = -1.0 + 2.0 * gl_FragCoord.xy / resolution.xy;
      vec2 uv;
 	 //shadertoy deform "relief tunnel"-gt
@@ -32,7 +32,7 @@ void main( void ) {
        float ao = 0.5 + 0.5*cos(42.0*a);//amp up the ao-g
        ao = smoothstep(0.0,0.4,ao)-smoothstep(0.4,0.7,ao);
        ao = 1.0-0.5*ao*r;
-	   
+
 	   //faux shaded texture-gt
 	   float px = gl_FragCoord.x/resolution.x;
 	   float py = gl_FragCoord.y/resolution.y;

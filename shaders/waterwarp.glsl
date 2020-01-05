@@ -1,5 +1,7 @@
+#version 330 
+
 // from: http://glsl.heroku.com/e#1157.0
-// modified(light-weighted) for raspberry-pi 
+// modified(light-weighted) for raspberry-pi
 
 #ifdef GL_ES
 precision mediump float;
@@ -11,7 +13,7 @@ uniform vec2 resolution;
 
 // An attempt at Quilez's warping (domain distortions):
 // http://iquilezles.org/www/articles/warp/warp.htm
-// 
+//
 // Not as good as his, but still interesting.
 // @SyntopiaDK, 2012
 
