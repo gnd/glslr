@@ -94,7 +94,12 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
 install:
-	install -D $(TARGET) $(PREFIX)/bin/$(TARGET)
+	ifeq (yes, $(LINUX))
+		install -D $(TARGET) $(PREFIX)/bin/$(TARGET)
+	endif
+	ifeq (yes, $(MACOS))
+		install  $(TARGET) $(PREFIX)/bin/$(TARGET)
+	endif
 
 clean:
 	rm -f *~
