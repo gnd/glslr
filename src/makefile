@@ -71,7 +71,7 @@ ifeq (yes, $(MACOS))
   LIBS+=-framework OpenGL
   LIBS+=-framework Cocoa
   LIBS+=-framework IOkit
-  LIBS+=lglew
+  LIBS+=-lglew
 endif
 
 # Define some source files
