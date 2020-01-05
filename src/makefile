@@ -94,10 +94,10 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
 install:
-	@if [ "$(LINUX)" == "yes" ]; then\
+	@if test "$(LINUX)" = "yes"; then\
 		install -D $(TARGET) $(PREFIX)/bin/$(TARGET);\
 	fi
-	@if [ "$(MACOS)" == "yes" ]; then\
+	@if test "$(MACOS)" = "yes"; then\
 		install $(TARGET) $(PREFIX)/bin/$(TARGET);\
 	fi
 
