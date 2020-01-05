@@ -1,98 +1,13 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <stdbool.h>
-
-#define GL_GLEXT_PROTOTYPES
-#include <GLFW/glfw3.h>
-
 #include "config.h"
 #include "base.h"
 #include "graphics.h"
-
 
 /* TODO
 * - make the windowed / fullscreen behaviour on keypress
 * - TODO !!!!!! fix behavior on manual resize / mouse fullscreen
 */
 
-
-enum {
-    MAX_RENDER_LAYER = 8,
-    MAX_TEXTURES = 2
-};
-
-typedef struct {
-	int numer;
-	int denom;
-} Scaling;
-
 static GLFWwindow* window;
-
-struct RenderLayer_ {
-	GLuint fragment_shader;
-	GLuint program;
-	GLuint texture_object;
-	GLuint texture_unit;
-	GLuint framebuffer;
-	struct {
-		GLuint vertex_coord;
-		netin_addr *net_input_addr;
-		GLuint mouse;
-		GLuint time;
-		GLuint resolution;
-		GLuint backbuffer;
-        GLuint video;
-        GLuint sony;
-		GLuint rand;
-		GLuint prev_layer;
-		GLuint prev_layer_resolution;
-        GLuint lines_before_include;
-        GLuint lines_included;
-	} attr;
-	void *auxptr;
-};
-
-
-struct Graphics_ {
-	GLFWwindow* window;
-	struct {
-		int x;
-		int y;
-		int z;
-		int w;
-	} viewport;
-	Graphics_LAYOUT layout;
-	GLuint array_buffer_fullscene_quad;
-	GLuint vertex_shader;
-	Graphics_WRAP_MODE texture_wrap_mode;
-	Graphics_INTERPOLATION_MODE texture_interpolation_mode;
-	Graphics_PIXELFORMAT texture_pixel_format;
-	RenderLayer render_layer[MAX_RENDER_LAYER];
-	int num_render_layer;
-    Displaydata_t displaydata;
-	int num_static_image;
-	int enable_backbuffer;
-    int enable_video;
-    int enable_sony;
-	int net_params;
-    GLuint textures[2];
-	GLuint backbuffer_texture_object;
-	GLuint backbuffer_texture_unit;
-    GLuint video_texture_object;
-    GLuint video_texture_unit;
-    GLuint sony_texture_object;
-    GLuint sony_texture_unit;
-	Scaling window_scaling;
-	Scaling primary_framebuffer;
-};
-
-
-
-static void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format,
-                                 GLint *out_internal_format,
-                                 GLenum *out_format, GLenum *out_type);
 
 #ifdef NDEBUG
 # define CHECK_GL()
