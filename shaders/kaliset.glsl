@@ -1,13 +1,7 @@
 #version 330
 
 /*
- * kaliset (http://www.fractalforums.com/new-theories-and-research/very-simple-formula-for-fractal-patterns/)
- * by Piers Haken
- */
-
-/*
  * from http://glsl.heroku.com/e#5655.1
- * (modified for RaspberryPi)
  */
 
 #ifdef GL_ES
@@ -17,9 +11,9 @@ precision mediump float;
 uniform vec2 mouse;
 uniform vec2 resolution;
 uniform float time;
+out vec4 PixelColor;
 
-const int max_iteration = 22;
-const float bailout = 70000.;
+const int max_iteration = 32;
 
 void main( void )
 {
@@ -30,13 +24,11 @@ void main( void )
 	float m = 0.;
 	for (int i = 0; i < max_iteration; ++i) {
 		float pm = m;
-		m = dot(z,z);
-		//if (m > bailout)
-		//	break;
+		m = dot(z,z*2.);
 		z = abs(z)/m + c;
 		total += exp(-1./abs(m - pm));
 	}
 
-	total = total / 20.;
-	gl_FragColor = vec4(total*1.5,total,total/sin(cos(time/10.)), 1.0);
+	total = total / 30.;
+	PixelColor = vec4(total*1.5,total,total/sin(cos(time/10.)), 1.0);
 }
