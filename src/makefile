@@ -12,18 +12,20 @@ ifeq ($(OS),Windows_NT)
 	exit
 else
     UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Linux)
+    ifeq (Linux,$(UNAME_S))
         CFLAGS = -DLINUX
-		ifeq (yes, $(VIDEO))
-          CFLAGS += -DVIDEO
-		endif
     endif
-    ifeq ($(UNAME_S),Darwin)
+    ifeq (Darwin,$(UNAME_S))
         MACOS=yes
         LINUX=no
         VIDEO=no
         CFLAGS = -DOSX
     endif
+endif
+
+# Is video allowed
+ifeq (yes, $(VIDEO))
+    CFLAGS += -DVIDEO
 endif
 
 # Set some basic flags

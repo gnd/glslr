@@ -165,7 +165,7 @@ void Graphics_HostInitialize(void);
 void Graphics_HostDeinitialize(void);
 void *RenderLayer_GetAux(RenderLayer *layer);
 void Graphics_Delete(Graphics *g);
-static void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format, GLint *out_internal_format, GLenum *out_format, GLenum *out_type);
+void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format, GLint *out_internal_format, GLenum *out_format, GLenum *out_type);
 int RenderLayer_UpdateShaderSource(RenderLayer *layer, const char *source, OPTIONAL int source_length);
 int Graphics_AppendRenderLayer(Graphics *g, const char *source, int lines_before, int lines_included, OPTIONAL int source_length, OPTIONAL void *auxptr);
 void Graphics_SetOffscreenPixelFormat(Graphics *g, Graphics_PIXELFORMAT pixel_format);

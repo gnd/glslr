@@ -667,7 +667,11 @@ void Glslr_Usage(void)
 	printf("    --port [port]                           listen on port (default:6666)\n");
 	printf("    --params [n]                            number of net input params (default:0)\n");
     printf("  video:\n");
+#ifdef VIDEO
     printf("    --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)\n");
+#else
+	printf("    No video support compiled.\n");
+#endif
 	printf("\n");
 }
 

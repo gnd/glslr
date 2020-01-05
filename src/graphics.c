@@ -1097,9 +1097,7 @@ void Graphics_GetSourceSize(Graphics *g, int *width, int *height)
 }
 
 
-static void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format,
-                                 GLint *out_internal_format,
-                                 GLenum *out_format, GLenum *out_type)
+void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format, GLint *out_internal_format, GLenum *out_format, GLenum *out_type)
 {
 	GLint internal_format;
 	GLenum format;
