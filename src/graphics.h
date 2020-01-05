@@ -24,7 +24,6 @@ enum {
     MAX_TEXTURES = 2
 };
 
-// TODO how not to define this in every header ?
 typedef struct JpegDec_s {
         unsigned long x;
         unsigned long y;

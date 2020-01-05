@@ -86,7 +86,6 @@ typedef struct {
 
 typedef struct Glslr_ Glslr;
 
-
 void udpmakeoutput(char *buf, Glslr *gx);
 void sockerror(const char *s);
 void x_closesocket(int fd);
