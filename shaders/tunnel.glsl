@@ -4,7 +4,7 @@
 	precision mediump float;
 #endif
 
-out vec4 PixelColor
+out vec4 PixelColor;
 uniform float time;
 uniform vec2 mouse;
 uniform vec2 resolution;
