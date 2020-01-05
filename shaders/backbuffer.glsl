@@ -1,4 +1,4 @@
-/* -*- Mode: c; tab-width: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*- */
+#version 330
 
 #ifdef GL_ES
 precision mediump float;
@@ -16,4 +16,3 @@ void main(void) {
     vec4 col = vec4(c, c, c, 1.0);
     gl_FragColor = mix(texture2D(backbuffer, uv), col, 0.05);
 }
-

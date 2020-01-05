@@ -1,6 +1,3 @@
-#ifndef INCLUDED_GRAPHICS_H
-#define INCLUDED_GRAPHICS_H
-
 #include "base.h"
 #include <stdio.h>
 #include <stddef.h>
@@ -10,9 +7,19 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#define GL_GLEXT_PROTOTYPES
-#include <GLFW/glfw3.h>
-#include "v4l2.h"
+#ifdef OSX
+    #define GL_SILENCE_DEPRECATION
+    #define GL_GLEXT_PROTOTYPES
+    #define GLFW_INCLUDE_GLCOREARB
+    #include <GL/glew.h>
+    #include <GLFW/glfw3.h>
+#endif
+
+#ifdef LINUX
+    #define GL_GLEXT_PROTOTYPES
+    #include <GLFW/glfw3.h>
+    #include "v4l2.h"
+#endif
 
 typedef struct {
 	int numer;
@@ -144,33 +151,23 @@ typedef struct Graphics_ {
 	Scaling primary_framebuffer;
 } Graphics;
 
+Graphics *Graphics_Create(Graphics_LAYOUT layout, int scaling_numer, int scaling_denom);
 
-static void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format,
-                                 GLint *out_internal_format,
-                                 GLenum *out_format, GLenum *out_type);
+#ifdef VIDEO
+    void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams);
+    void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg_dec);
+#else
+    void Graphics_InitDisplayData(Graphics *g);
+    void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec);
+#endif
 
 void Graphics_HostInitialize(void);
 void Graphics_HostDeinitialize(void);
-
 void *RenderLayer_GetAux(RenderLayer *layer);
-int RenderLayer_UpdateShaderSource(RenderLayer *layer,
-                                   const char *source,
-                                   OPTIONAL int source_length);
-
-
-Graphics *Graphics_Create(Graphics_LAYOUT layout,
-                          int scaling_numer, int scaling_denom);
-
 void Graphics_Delete(Graphics *g);
-void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams);
-
-int Graphics_AppendRenderLayer(Graphics *g,
-                               const char *source,
-                               int lines_before,
-                               int lines_included,
-                               OPTIONAL int source_length,
-                               OPTIONAL void *auxptr);
-
+void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format, GLint *out_internal_format, GLenum *out_format, GLenum *out_type);
+int RenderLayer_UpdateShaderSource(RenderLayer *layer, const char *source, OPTIONAL int source_length);
+int Graphics_AppendRenderLayer(Graphics *g, const char *source, int lines_before, int lines_included, OPTIONAL int source_length, OPTIONAL void *auxptr);
 void Graphics_SetOffscreenPixelFormat(Graphics *g, Graphics_PIXELFORMAT pixel_format);
 void Graphics_SetOffscreenInterpolationMode(Graphics *g, Graphics_INTERPOLATION_MODE interpolation_mode);
 void Graphics_SetOffscreenWrapMode(Graphics *g, Graphics_WRAP_MODE wrap_mode);
@@ -184,11 +181,7 @@ int Graphics_AllocateOffscreen(Graphics *g);
 void Graphics_DeallocateOffscreen(Graphics *g);
 RenderLayer *Graphics_GetRenderLayer(Graphics *g, int layer_index);
 int Graphics_BuildRenderLayer(Graphics *g, int layer_index);
-void Graphics_SetUniforms(Graphics *g, double t,
-                          netin_val *net_input_val,
-                          double mouse_x, double mouse_y,
-                          double randx, double randy);
-void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg_dec);
+void Graphics_SetUniforms(Graphics *g, double t, netin_val *net_input_val, double mouse_x, double mouse_y, double randx, double randy);
 void Graphics_SetBackbuffer(Graphics *g, int enable);
 void Graphics_SetVideo(Graphics *g, int enable);
 void Graphics_SetSony(Graphics *g, int enable);
@@ -199,5 +192,3 @@ void Graphics_GetWindowSize(Graphics *g, int *out_width, int *out_height);
 void Graphics_GetSourceSize(Graphics *g, int *out_width, int *out_height);
 void Graphics_getWindowWidth(Graphics *g, int *width);
 void Graphics_getWindowHeight(Graphics *g, int *height);
-
-#endif

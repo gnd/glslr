@@ -1,5 +1,7 @@
+#version 330 
+
 // from http://glsl.heroku.com/e#5205.0
-// modified(light-weighted) for raspberry-pi 
+// modified(light-weighted) for raspberry-pi
 
 #ifdef GL_ES
 precision mediump float;
@@ -110,7 +112,7 @@ void main( void ) {
 	 float mouseW = -atan((mouse.y - 0.5), (mouse.x - 0.5));
 	 vec2 mousePolar = vec2(-cos(mouseW), sin(mouseW));
 	 vec2 offset = 0.5 + complex_mul((mouse-0.5)*vec2(-1.,1.)*aspect, mousePolar)*aspect*8. ;
-	 
+
 	 vec2 p = torus_mirror(complex_div(mousePolar*vec2(.1618), uv) - offset);
   vec2 g1, g2;
 //  vec2 p = ( gl_FragCoord.xy / resolution.xy ) * 6.0;

@@ -1,3 +1,5 @@
+#version 330 
+
 /* Normal Map Stuff */
 /* By: Flyguy */
 /* With help from http://stackoverflow.com/q/5281261 */
@@ -40,7 +42,7 @@ float heightmap(vec2 position)
 		}
 		return sqrt(height);
 }
-		
+
 const vec2 size = vec2(-0.4,0.0);
 void main( void ) {
 	float n1,n2,n3,n4;
@@ -49,7 +51,7 @@ void main( void ) {
 	n2 = heightmap(vec2(pos.x-1.0,pos.y));
 	n3 = heightmap(vec2(pos.x+1.0,pos.y));
 	n4 = heightmap(vec2(pos.x,pos.y+1.0));
-	vec3 p2m = vec3(-((pos/resolution)-mouse)*resolution,resolution.x*.4);		
+	vec3 p2m = vec3(-((pos/resolution)-mouse)*resolution,resolution.x*.4);
 	vec3 normal = normalize(vec3(n2-n3, n1-n4, 0.4));
 	float color = dot(normal, normalize(p2m))*.5+.5;
 	vec3 colorvec = vec3(pow(color,10.),pow(color,5.),pow(color,2.5));

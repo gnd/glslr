@@ -39,8 +39,10 @@ typedef struct JpegMemory_s {
 struct Glslr_ {
 	Graphics *graphics;
 	Graphics_LAYOUT layout_backup;
+#ifdef VIDEO
     Sourceparams_t sourceparams;
     Videocapabilities_t capabilities;
+#endif
     JpegMemory_t mem;
     pthread_t thread;
     bool sony_thread_active;

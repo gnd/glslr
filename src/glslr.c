@@ -272,7 +272,9 @@ int Glslr_Construct(Glslr *gx)
 		return 2;
 	}
 
+	#ifdef VIDEO
     memset(&gx->sourceparams, 0, sizeof(gx->sourceparams));
+	#endif
 
 	gx->sony_thread_active = false;
 	gx->is_fullscreen = 0;
@@ -394,6 +396,7 @@ static int Glslr_SwitchBackbuffer(Glslr *gx)
 static int Glslr_SwitchVideo(Glslr *gx)
 {
 	gx->use_video ^= 1;
+	#ifdef VIDEO
 	Graphics_SetVideo(gx->graphics, gx->use_video);
     if (gx->use_video == 1) {
             _enqueue_mmap_buffers(&gx->sourceparams);
@@ -402,6 +405,9 @@ static int Glslr_SwitchVideo(Glslr *gx)
         _stop_streaming(&gx->sourceparams);
     }
 	return Graphics_ApplyOffscreenChange(gx->graphics);
+	#else
+	return 1;
+	#endif
 }
 
 
@@ -553,15 +559,19 @@ static void Glslr_SetUniforms(Glslr *gx)
 
 static void Glslr_Render(Glslr *gx)
 {
-    int framesize;
 	double t = 0, vs = 0, ms = 0;
 	t = GetCurrentTimeInMilliSecond();
 
+	#ifdef VIDEO
+	int framesize;
     if (gx->use_video == 1) {
         capture_video_frame(&gx->sourceparams, &framesize);
         vs = GetCurrentTimeInMilliSecond();
     }
 	Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
+	#else
+	Graphics_Render(gx->graphics, &jpeg_dec);
+	#endif
 
 	//TODO render time works pretty weirdly, gets different results compared to nSight
 	//TODO see if possible to have also sony time
@@ -657,7 +667,11 @@ void Glslr_Usage(void)
 	printf("    --port [port]                           listen on port (default:6666)\n");
 	printf("    --params [n]                            number of net input params (default:0)\n");
     printf("  video:\n");
+#ifdef VIDEO
     printf("    --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)\n");
+#else
+	printf("    No video support compiled.\n");
+#endif
 	printf("\n");
 }
 
@@ -671,6 +685,7 @@ static int Glslr_HandleKeyboadEvent(Glslr *gx)
 
 static int Glslr_PrepareMainLoop(Glslr *gx)
 {
+	#ifdef VIDEO
 	// setup video
 	if (gx->video_dev_num != 666) {
 		const char *fmt = "/dev/video%d";
@@ -679,8 +694,10 @@ static int Glslr_PrepareMainLoop(Glslr *gx)
 		//TODO - try catch this
     	init_device_and_buffers(gx->video_device, &(gx->sourceparams), &(gx->capabilities));
 	}
-
     Graphics_InitDisplayData(gx->graphics, &(gx->sourceparams));
+	#else
+	Graphics_InitDisplayData(gx->graphics);
+	#endif
 
 	return Graphics_AllocateOffscreen(gx->graphics);
 }

@@ -1,12 +1,11 @@
-# glslr GLSL livecoder
-
+# GLSLR - lightweight livecoding environment
 TARGET=glslr
 VERSION=0.1
 DEBUG=yes
 
 all:
 	make -C src $@
-	cp -fu src/$(TARGET) ./
+	cp -f src/$(TARGET) ./
 
 clean:
 	make -C src clean
