@@ -1,9 +1,28 @@
 # GLSLR - lightweight livecoding environment
 TARGET=glslr
+LINUX=yes
+MACOS=no
 DEBUG=no
 CC=gcc
 
-CFLAGS =-Wall
+# Detect the platform first
+ifeq ($(OS),Windows_NT)
+    echo "Windows platforms not supported"
+	exit
+else
+    UNAME_S := $(shell uname -s)
+    ifeq ($(UNAME_S),Linux)
+        CFLAGS += -DLINUX
+    endif
+    ifeq ($(UNAME_S),Darwin)
+        MACOS=yes
+        LINUX=no
+        CFLAGS += -DOSX
+    endif
+endif
+
+# Set some basic flags
+CFLAGS+=-Wall
 CFLAGS+=-Wextra
 CFLAGS+=-Wwrite-strings
 CFLAGS+=-Wpointer-arith
@@ -19,23 +38,36 @@ ifeq ($(PREFIX),)
     PREFIX := /usr
 endif
 
+# Load libraries according to the platform
+# Default libs
 LIBS+=-lglfw
-LIBS+=-lGL
-LIBS+=-lX11
-LIBS+=-lXrandr
-LIBS+=-lXi
-LIBS+=-lXxf86vm
-LIBS+=-lXcursor
-LIBS+=-lXinerama
-LIBS+=-lXrender
-LIBS+=-lXext
-LIBS+=-lXdamage
 LIBS+=-lm
 LIBS+=-lpthread
 LIBS+=-ldl
 LIBS+=-lcurl
 LIBS+=-ljpeg
+# Linux
+ifeq (yes, $(LINUX))
+  LIBS+=-lGL
+  LIBS+=-lX11
+  LIBS+=-lXrandr
+  LIBS+=-lXi
+  LIBS+=-lXxf86vm
+  LIBS+=-lXcursor
+  LIBS+=-lXinerama
+  LIBS+=-lXrender
+  LIBS+=-lXext
+  LIBS+=-lXdamage
+endif
+# Mac OS
+ifeq (yes, $(MACOS))
+  LIBS+=-framework OpenGL
+  LIBS+=-framework Cocoa
+  LIBS+=-framework IOkit
+  LIBS+=glew
+endif
 
+# Define some source files
 SOURCES =main.c
 SOURCES+=glslr.c
 SOURCES+=graphics.c
@@ -43,8 +75,10 @@ SOURCES+=v4l2.c
 SOURCES+=v4l2_controls.c
 SOURCES+=sony.c
 
+# Define some objects
 OBJECTS=$(subst .c,.o, $(SOURCES))
 
+# Define compilation targets
 all: $(TARGET) install
 
 $(TARGET): $(OBJECTS)
