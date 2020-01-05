@@ -1096,7 +1096,6 @@ void Graphics_GetSourceSize(Graphics *g, int *width, int *height)
 	Graphics_getWindowWidth(g, width);
 }
 
-
 void DeterminePixelFormat(Graphics_PIXELFORMAT pixel_format, GLint *out_internal_format, GLenum *out_format, GLenum *out_type)
 {
 	GLint internal_format;
