@@ -42,7 +42,7 @@ else
 endif
 
 ifeq ($(PREFIX),)
-    PREFIX := /usr
+    PREFIX := /usr/local
 endif
 
 # Load libraries according to the platform
@@ -94,10 +94,10 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
 install:
-	if [ "$(LINUX)" == "yes" ]; then\
+	@if [ "$(LINUX)" == "yes" ]; then\
 		install -D $(TARGET) $(PREFIX)/bin/$(TARGET);\
 	fi
-	if [ "$(MACOS)" == "yes" ]; then\
+	@if [ "$(MACOS)" == "yes" ]; then\
 		install $(TARGET) $(PREFIX)/bin/$(TARGET);\
 	fi
 
