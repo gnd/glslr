@@ -94,12 +94,12 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
 install:
-	ifeq (yes, $(LINUX))
+	if [ $LINUX -eq "yes" ]; then
 		install -D $(TARGET) $(PREFIX)/bin/$(TARGET)
-	endif
-	ifeq (yes, $(MACOS))
-		install  $(TARGET) $(PREFIX)/bin/$(TARGET)
-	endif
+	fi
+	if [ $MACOS -eq "yes" ]; then
+		install $(TARGET) $(PREFIX)/bin/$(TARGET)
+	fi
 
 clean:
 	rm -f *~
