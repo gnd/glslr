@@ -514,13 +514,6 @@ static int Graphics_SetupInitialState(Graphics *g)
 {
 	CHECK_GL();
 
-    #ifdef OSX
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    #endif
-
 	if (g->array_buffer_fullscene_quad == 0) {
 		static const GLfloat fullscene_quad[] = {
 			-1.0, -1.0, 1.0, 1.0,
@@ -578,6 +571,13 @@ void Graphics_SetupViewport(Graphics *g) {
 
     xpos = 0;
     ypos = 0;
+
+    #ifdef OSX
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    #endif
 
     switch (g->layout) {
         case Graphics_LAYOUT_PRIMARY_RESOLUTION: /* default */
