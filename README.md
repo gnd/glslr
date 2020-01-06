@@ -1,17 +1,29 @@
 # glslr
-**glslr** is a ultra-lightweight GLSL livecoding framework for x86 architecture.  
-**glslr** watches for changes in the input GLSL file and renders them to screen.  
-**glslr** is able to receive control data through a network socket which is then fed to the shader in the form of uniform variables.  
-**glslr** enables GLSL code-reuse across projects with its #include support.  
-**glslr** now has experimental Video4Linux support.  
+
+## Features
+- Ultra-lightweight GLSL livecoding framework for Linux and Mac OS X.
+- Enables quick fragment shader development in your favorite editor.
+- Changes in the fragment shader are compiled in realtime.
+- Uniform variables can be filled with data received from a socket.
+- Enables GLSL code-reuse across projects with support of #include.
+- Has experimental Video4Linux support.
+- Has support for livestreaming from a Sony AS30 ActionCam.
 
 ## Installation:
 
-On Ubuntu its enough to install libgles2-mesa-dev and libglfw3-dev:
+On Ubuntu:
 ```
 apt-get install git libgles2-mesa-dev libglfw3-dev
-git clone https://github.com/k-o-l-e-k-t-i-v/glslr
+git clone https://github.com/gnd/glslr
 cd glslr
+make
+```
+On Mac OSX:
+```
+(get CodeX, homebrew)
+brew install glfw3 glew libjpeg
+git clone https://github.com/gnd/glslr
+cd glslr 
 make
 ```
 
@@ -43,8 +55,11 @@ options:
     --tcp                                   enable TCP (default:UDP)
     --port [port]                           listen on port (default:6666)
     --params [n]                            number of net input params (default:0)
+  sony:
+	--sony 									enable sony ActionCAM AS30 support
   video:
     --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)
+
 ```
 ## Usage with network:
 ```
@@ -74,6 +89,24 @@ uniform sampler2D video;
 void main(void) {
 	vec2 p = vec2( gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);
 	gl_FragColor = texture2D(video, p);
+}
+```
+
+## Using Sony ActionCam input:
+
+**glslr** makes it possible to use live video input from a Sony AS30 ActionCam. 
+```
+glslr --sony example.glsl
+```
+
+In the shader you can access the video data by using uniform sampler2D variable called sony:
+```
+uniform vec2 resolution;
+uniform sampler2D sony;
+
+void main(void) {
+	vec2 p = vec2( gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);
+	gl_FragColor = texture2D(sony, p);
 }
 ```
 
@@ -109,6 +142,6 @@ void main(void) {
 ```
 ##
 
-**glslr** is a fork of pijockey-sound (https://github.com/gnd/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of PiJockey by sharrow.  
+**glslr** is a fork of pijockey-sound (https://github.com/gnd/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of **PiJockey by sharrow**.  
 **glslr** was ported to x86, using GLFW. The Video4Linux capability was scrambled from **glutcam** by George Koharchik.  
-**glslr** is being occasionally developed (when preparing for a new performance) by gnd ♥ itchybit.org.
+**glslr** is being occasionally developed (when preparing for a new performance) by gnd ♥ gnd.sk.
