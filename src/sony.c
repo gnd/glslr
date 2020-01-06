@@ -7,6 +7,7 @@
 #include <jerror.h>
 #include <pthread.h>
 #include "sony.h"
+// TODO move headers into sony.h
 
 static size_t SonyCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
