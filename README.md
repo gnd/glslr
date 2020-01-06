@@ -149,15 +149,15 @@ color = vec3(1.,0.,0.);
 project.glsl:
 ```
 void main(void) {
-	vec3 c=vec3(0.,1.,0.);
+	vec3 color = vec3(0.,1.,0.);
 
 	//#include function.glsl  
     // ^^^ this line will be replaced with contents of the function.glsl file
 
-	gl_FragColor = vec4(c, 1.0);
+	gl_FragColor = vec4(color, 1.0);
 }
 ```
-##
+## 
 
 **glslr** is a fork of pijockey-sound (https://github.com/gnd/pijockey-sound), a GLSL livecoding framework for RaspberryPi, an extension of the original sourcecode of **PiJockey by sharrow**.  
 **glslr** was ported to x86, using GLFW. The Video4Linux capability was scrambled from **glutcam** by George Koharchik.  
