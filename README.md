@@ -56,7 +56,7 @@ options:
     --port [port]                           listen on port (default:6666)
     --params [n]                            number of net input params (default:0)
   sony:
-	--sony 									enable sony ActionCAM AS30 support
+     --sony                                 enable Sony ActionCAM AS30 support
   video:
     --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)
 
