@@ -26,7 +26,7 @@ git clone https://github.com/gnd/glslr
 cd glslr 
 make
 ```
-Please note that you can edit the src/makefile to turn off v4l2 support, simply by changing VIDEO=yes or VIDEO=no before compilation.
+Please note that you can edit the src/makefile to enable/disable v4l2 support, simply by changing VIDEO=yes or VIDEO=no before compilation. V4l2 support is disabled when compiing on Mac OSX.
 
 ## Usage:
 
