@@ -70,6 +70,14 @@ glslr --net --port [port] --params N example.glsl
 The parameters must be sent via UDP to the [port] in the form: *"param0 param1 param2 ... paramN;"*.  
 A reference is to use PureData's object [netsend]. Currently only integer and float variables are supported.
 
+**glslr** makes the parameters available in GLSL as uniform float type. The parameters can be accessed from the code, where N is the number of parameters specified on the command line *(currently max 99)*, like this:
+```
+uniform float m0;
+..
+uniform float mN;
+```
+You can use the parameters to carry input from a MIDI controller, sound-analysis or anything you like.
+
 ## Usage with video:
 
 **glslr** makes it possible to use experimental live video input from a V4L device. Currently only YUV422 devices are supported. The image is raw YUV422 - conversion into RGBA is up to you in the shader.
@@ -109,15 +117,6 @@ void main(void) {
 	vec2 p = vec2( gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);
 	gl_FragColor = texture2D(sony, p);
 }
-```
-
-## Using parameters:
-
-**glslr** makes the parameters available in GLSL as uniform float type. The parameters can be accessed from the code, where N is the number of parameters specified on the command line *(currently max 99)*, like this:
-```
-uniform float m0;
-..
-uniform float mN;
 ```
 
 ## Using include:
