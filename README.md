@@ -29,6 +29,23 @@ make
 Please note that you can edit the src/makefile to turn off v4l2 support, simply by changing VIDEO=yes or VIDEO=no before compilation.
 
 ## Usage:
+
+This will read the fragment shader from shaders/tunnel.glsl and render it in a 800x600 window on the primary monitor. Any changes you make to the file while **glslr** is running, will be automatically recompiled and sent to the GPU on save:
+```
+glslr shaders/tunnel.glsl
+```
+
+This will read the fragment shader from shaders/tunnel.glsl and render it into a 1024x768 window on the primary monitor:
+```
+glslr --primary-res 1024x768 shaders/tunnel.glsl
+```
+
+This will read the fragment shader and render it fullscreen on the secondary monitor (if any):
+```
+glslr --secondary-fs shaders/tunnel.glsl
+```
+
+For other options see bellow:
 ```
 usage: glslr [options] <layer0.glsl> [layer1.glsl] [layer2.glsl] ...
 options:
