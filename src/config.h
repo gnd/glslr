@@ -2,7 +2,7 @@
 #define INCLUDED_CONFIG_H
 
 #define VERSION_MAJOR 0x00
-#define VERSION_MINOR 0x02
+#define VERSION_MINOR 0x03
 
 /* for raw mode terminal */
 #define USE_TERMIOS
