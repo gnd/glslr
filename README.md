@@ -87,13 +87,13 @@ glslr --net --port [port] --params N example.glsl
 The parameters must be sent via UDP to the [port] in the form: *"param0 param1 param2 ... paramN;"*.  
 A reference is to use PureData's object [netsend]. Currently only integer and float variables are supported.
 
-**glslr** makes the parameters available in GLSL as uniform float type. The parameters can be accessed from the code, where N is the number of parameters specified on the command line *(currently max 99)*, like this:
+**glslr** makes the received data available in the shader as uniform float. The data can be accessed if you declare pamaters like this in the shader:
 ```
 uniform float m0;
 ..
 uniform float mN;
 ```
-You can use the parameters to carry input from a MIDI controller, sound-analysis or anything you like.
+You can use the parameters to carry input from a MIDI controller, sound-analysis or anything you like. The maximum count of parameters is 99 for now.
 
 ## Usage with video:
 
