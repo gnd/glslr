@@ -666,6 +666,8 @@ void Glslr_Usage(void)
 	printf("    --tcp                                   enable TCP (default:UDP)\n");
 	printf("    --port [port]                           listen on port (default:6666)\n");
 	printf("    --params [n]                            number of net input params (default:0)\n");
+	printf("  sony:\n");
+	printf("	--sony 									enable sony ActionCAM AS30 support\n");
     printf("  video:\n");
 #ifdef VIDEO
     printf("    --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)\n");
@@ -964,6 +966,10 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
         if (!strcmp(argv[i], "--params")) {
             if (++i>=argc) Glslr_Usage();
 			gx->net_params=atoi(argv[i]); /* handle error gnd */
+            continue;
+		}
+		if (!strcmp(argv[i], "--sony")) {
+			gx->use_sony = 1;
             continue;
 		}
         if (!strcmp(argv[i], "--vdev")) {
