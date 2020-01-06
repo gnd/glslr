@@ -993,6 +993,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 
     Graphics_SetupViewport(gx->graphics); /* has to be done after args parsing but before appending layers */
     Graphics_SetBackbuffer(g, gx->use_backbuffer);
+	Graphics_SetSony(g, gx->use_sony);
 
     // add layers
     for (i = 0; i < layer; i++) {
