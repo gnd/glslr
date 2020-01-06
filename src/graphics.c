@@ -355,11 +355,6 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	int i;
 	char name[5]; /* MAX 99 ! */
 
-    // Activate vertex attributes array
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
 	CHECK_GL();
 	glCompileShader(layer->fragment_shader);
 	glGetShaderiv(layer->fragment_shader, GL_COMPILE_STATUS, &param);
@@ -415,6 +410,11 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	layer->attr.prev_layer = glGetUniformLocation(layer->program, "prev_layer");
 	layer->attr.prev_layer_resolution = glGetUniformLocation(layer->program, "prev_layer_resolution");
 
+    // Activate vertex attributes array
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    
 	glBindBuffer(GL_ARRAY_BUFFER, array_buffer_fullscene_quad);
 	glVertexAttribPointer(layer->attr.vertex_coord,
 	                      4,
