@@ -35,14 +35,14 @@ This will read the fragment shader from shaders/tunnel.glsl and render it in a 8
 glslr shaders/tunnel.glsl
 ```
 
-This will read the fragment shader from shaders/tunnel.glsl and render it into a 1024x768 window on the primary monitor:
+This will read the fragment shader from shaders/template.glsl and render it into a 1024x768 window on the primary monitor:
 ```
-glslr --primary-res 1024x768 shaders/tunnel.glsl
+glslr --primary-res 1024x768 shaders/template.glsl
 ```
 
 This will read the fragment shader and render it fullscreen on the secondary monitor (if any):
 ```
-glslr --secondary-fs shaders/tunnel.glsl
+glslr --secondary-fs shaders/glass_sphere.glsl
 ```
 
 For other options see bellow:
@@ -105,16 +105,21 @@ Provide the video device number to be able to use it in the shader. Default is 0
 Eg. if you want to use /dev/video1 do:
 
 ```
-glslr --vdev 1 example.glsl
+glslr --vdev 1 shaders/test_video.glsl
 ````
-In the shader you can access the video data by using uniform sampler2D variable called video:
+In the shader you can access the video data by using uniform sampler2D variable called video. To start camera press 'v'.
 ```
+#version 130
+
+out vec4 PixelColor;
 uniform vec2 resolution;
 uniform sampler2D video;
 
+// press 'v' to start video
+
 void main(void) {
 	vec2 p = vec2( gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);
-	gl_FragColor = texture2D(video, p);
+	PixelColor = texture(video, p);
 }
 ```
 
@@ -122,17 +127,20 @@ void main(void) {
 
 **glslr** makes it possible to use live video input from a Sony AS30 ActionCam. 
 ```
-glslr --sony example.glsl
+glslr --sony shaders/test_sony.glsl
 ```
 
 In the shader you can access the video data by using uniform sampler2D variable called sony:
 ```
+#version 130
+
+out vec4 PixelColor;
 uniform vec2 resolution;
 uniform sampler2D sony;
 
 void main(void) {
 	vec2 p = vec2( gl_FragCoord.x / resolution.x, 1.0 - gl_FragCoord.y / resolution.y);
-	gl_FragColor = texture2D(sony, p);
+	PixelColor = texture(sony, p);
 }
 ```
 
