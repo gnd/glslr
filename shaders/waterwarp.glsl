@@ -1,4 +1,4 @@
-#version 330 
+#version 130
 
 // from: http://glsl.heroku.com/e#1157.0
 // modified(light-weighted) for raspberry-pi

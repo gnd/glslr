@@ -1,4 +1,4 @@
-#version 330
+#version 130
 
 /* Normal Map Stuff */
 /* By: Flyguy */

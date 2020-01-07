@@ -1,4 +1,4 @@
-#version 330
+#version 130
 
 /* from http://glsl.heroku.com/e#5254.1 */
 

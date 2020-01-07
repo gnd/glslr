@@ -414,7 +414,7 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
-    
+
 	glBindBuffer(GL_ARRAY_BUFFER, array_buffer_fullscene_quad);
 	glVertexAttribPointer(layer->attr.vertex_coord,
 	                      4,
@@ -532,7 +532,7 @@ static int Graphics_SetupInitialState(Graphics *g)
 	if (g->vertex_shader == 0) {
 		GLint param;
 		static const GLchar *vertex_shader_source =
-            "#version 330\n"
+            "#version 130\n"
 		    "in vec4 vertex_coord;\n"
 		    "void main(void) { gl_Position = vertex_coord; }";
 		g->vertex_shader = glCreateShader(GL_VERTEX_SHADER);
