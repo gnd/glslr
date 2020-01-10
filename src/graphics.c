@@ -50,6 +50,11 @@ void handleError(const char *message, int _exitStatus)
 	exit(_exitStatus);
 }
 
+void handleGlfwError(int error, const char* description)
+{
+	fprintf(stderr, "Error %d: %s\n", error, description);
+}
+
 float fixDpiScale(GLFWwindow* _window)
 {
 	int window_width, window_height, framebuffer_width, framebuffer_height;
@@ -562,15 +567,16 @@ static int Graphics_SetupInitialState(Graphics *g)
 void Graphics_SetupViewport(Graphics *g) {
 
     int i, count, xpos, ypos;
+	xpos = 0;
+    ypos = 0;
+
+	glfwSetErrorCallback(handleGlfwError);
 
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 	for (i = 0; i < count; i++) {
 		const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
 		fprintf(stderr, "Monitor[%i]: %i x %i @ %i hz\n", i, mode->width, mode->height, mode->refreshRate);
 	}
-
-    xpos = 0;
-    ypos = 0;
 
     //#ifdef OSX
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
