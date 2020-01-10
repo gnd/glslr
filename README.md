@@ -17,6 +17,7 @@ apt-get install git libgles2-mesa-dev libglfw3-dev
 git clone https://github.com/gnd/glslr
 cd glslr
 make
+sudo make install
 ```
 On Mac OSX:
 ```
@@ -25,6 +26,7 @@ brew install glfw3 glew libjpeg
 git clone https://github.com/gnd/glslr
 cd glslr 
 make
+sudo make install
 ```
 Please note that you can edit the src/makefile to enable/disable v4l2 support, simply by changing VIDEO=yes or VIDEO=no before compilation. V4l2 support is disabled when compiing on Mac OSX.
 
