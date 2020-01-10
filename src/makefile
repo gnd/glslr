@@ -88,10 +88,10 @@ endif
 OBJECTS=$(subst .c,.o, $(SOURCES))
 
 # Define compilation targets
-all: $(TARGET) install
-
 $(TARGET): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
+
+all: clean $(TARGET)
 
 install:
 	@if test "$(LINUX)" = "yes"; then\
