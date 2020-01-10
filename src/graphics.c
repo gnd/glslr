@@ -578,9 +578,25 @@ void Graphics_SetupViewport(Graphics *g) {
 		fprintf(stderr, "Monitor[%i]: %i x %i @ %i hz\n", i, mode->width, mode->height, mode->refreshRate);
 	}
 
+   	const GLubyte *renderer = glGetString( GL_RENDERER );
+	const GLubyte *vendor = glGetString( GL_VENDOR );
+	const GLubyte *version = glGetString( GL_VERSION );
+	const GLubyte *glslVersion =
+       glGetString( GL_SHADING_LANGUAGE_VERSION );
+
+	   GLint major, minor;
+	   glGetIntegerv(GL_MAJOR_VERSION, &major);
+	   glGetIntegerv(GL_MINOR_VERSION, &minor);
+
+printf("GL Vendor            : %s\n", vendor);
+printf("GL Renderer          : %s\n", renderer);
+printf("GL Version (string)  : %s\n", version);
+printf("GL Version (integer) : %d.%d\n", major, minor);
+printf("GLSL Version         : %s\n", glslVersion);
+
     //#ifdef OSX
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     //#endif
@@ -626,7 +642,7 @@ void Graphics_SetupViewport(Graphics *g) {
 
 	if(!g->window) {
 		glfwTerminate();
-		handleError("GLFW create window failed", -1);
+		handleError("GLFW create window failed\n", -1);
 	}
 
     g->viewport.z *= fixDpiScale(g->window);
