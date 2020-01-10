@@ -37,7 +37,7 @@ float box(vec3 p, vec3 b, float r) {
     return min(maxcomp(d),0.0) - r + length(max(d,0.0));
 }
 
-float ball(p) {
+float ball(vec3 p) {
     return sphere(p - vec3(0.,.5,.0), 1.);
 }
 
@@ -138,7 +138,7 @@ void main() {
                 color += m1.color * s1.amb *.2;
             }
             if (ball(p) < eps) {
-                m1.color = vec3(1.,.0.,0.);
+                m1.color = vec3(1.,0.,0.);
                 m1.reflection_ratio = 0.01;
                 m1.shininess = 3.;
                 s1 = get_shading(m1, l1, p, n, ld, ed);
