@@ -849,7 +849,7 @@ int Graphics_AllocateOffscreen(Graphics *g)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		printf("We got to 3\n");
 		// deprecated
-        //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
         glBindTexture(GL_TEXTURE_2D, 0);                        // fix this too
 		printf("We got to 4\n");
     }
