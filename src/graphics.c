@@ -428,7 +428,7 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-
+	glEnableVertexAttribArray(layer->attr.vertex_coord);
 	glBindBuffer(GL_ARRAY_BUFFER, array_buffer_fullscene_quad);
 	glVertexAttribPointer(layer->attr.vertex_coord,
 	                      4,
@@ -436,7 +436,6 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	                      GL_FALSE,
 	                      16,
 	                      NULL);
-	glEnableVertexAttribArray(layer->attr.vertex_coord);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glUseProgram(0);
 
