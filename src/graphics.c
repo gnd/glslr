@@ -9,13 +9,6 @@
 
 static GLFWwindow* window;
 
-#ifdef NDEBUG
-# define CHECK_GL()
-#else
-# define CHECK_GL() CheckGLError(__FILE__, __LINE__, __func__)
-#endif
-
-#ifndef NDEBUG
 static void CheckGLError(const char *file, int line, const char *func)
 {
 	GLenum e;
@@ -42,7 +35,6 @@ static void CheckGLError(const char *file, int line, const char *func)
 		printf("  OpenGL error code %04x (?)\n", e);
 	}
 }
-#endif
 
 void handleError(const char *message, int _exitStatus)
 {

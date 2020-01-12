@@ -38,7 +38,7 @@ CFLAGS+=-Wcast-align
 ifeq (yes, $(DEBUG))
   CFLAGS+=-g
 else
-  CFLAGS+=-O2 -s
+  CFLAGS+=-O3 -s
 endif
 
 ifeq ($(PREFIX),)

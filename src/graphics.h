@@ -151,6 +151,8 @@ typedef struct Graphics_ {
 	Scaling primary_framebuffer;
 } Graphics;
 
+#define CHECK_GL() CheckGLError(__FILE__, __LINE__, __func__)
+
 Graphics *Graphics_Create(Graphics_LAYOUT layout, int scaling_numer, int scaling_denom);
 
 #ifdef VIDEO
