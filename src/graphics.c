@@ -434,7 +434,7 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	                      4,
 	                      GL_FLOAT,
 	                      GL_FALSE,
-	                      0,
+	                      16,
 	                      NULL);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glUseProgram(0);
@@ -579,10 +579,10 @@ void Graphics_SetupViewport(Graphics *g) {
     ypos = 0;
 
 	glfwSetErrorCallback(handleGlfwError);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 	for (i = 0; i < count; i++) {
