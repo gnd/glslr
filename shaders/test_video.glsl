@@ -1,4 +1,4 @@
-#version 130
+#version 330
 
 out vec4 PixelColor;
 uniform vec2 resolution;

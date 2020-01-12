@@ -1,9 +1,4 @@
-#version 130
-
-#ifdef GL_ES
-	precision mediump float;
-#endif
-
+#version 330
 out vec4 PixelColor;
 uniform float time;
 uniform vec2 mouse;

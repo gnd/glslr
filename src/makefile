@@ -2,7 +2,7 @@
 TARGET=glslr
 LINUX=yes
 MACOS=no
-VIDEO=yes
+VIDEO=no
 DEBUG=no
 CC=gcc
 

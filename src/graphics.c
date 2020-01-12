@@ -35,11 +35,11 @@ static void CheckGLError(const char *file, int line, const char *func)
 		printf("\nfrom %s(%d)--: function %s\n", file, line, func);
 		for (i = 0; i < (int)ARRAY_SIZEOF(tbl); i++) {
 			if (e == tbl[i].code) {
-				printf("  OpenGL|ES raise: code 0x%04x (%s)\n", e, tbl[i].str);
+				printf("  OpenGL error code %04x (%s)\n", e, tbl[i].str);
 				return;
 			}
 		}
-		printf("  OpenGL|ES raise: code 0x%04x (?)\n", e);
+		printf("  OpenGL error code %04x (?)\n", e);
 	}
 }
 #endif
@@ -48,6 +48,26 @@ void handleError(const char *message, int _exitStatus)
 {
 	fprintf(stderr, "%s", message);
 	exit(_exitStatus);
+}
+
+void handleGlfwError(int error, const char* description)
+{
+	fprintf(stderr, "Error %d: %s\n", error, description);
+}
+
+void printGLVersion() {
+	const GLubyte *renderer = glGetString( GL_RENDERER );
+	const GLubyte *vendor = glGetString( GL_VENDOR );
+	const GLubyte *glslVersion = glGetString( GL_SHADING_LANGUAGE_VERSION );
+
+	GLint major, minor;
+	glGetIntegerv(GL_MAJOR_VERSION, &major);
+	glGetIntegerv(GL_MINOR_VERSION, &minor);
+
+	printf("GL Vendor            : %s\n", vendor);
+	printf("GL Renderer          : %s\n", renderer);
+	printf("GL Version used      : %d.%d\n", major, minor);
+	printf("GLSL Version used    : %s\n", glslVersion);
 }
 
 float fixDpiScale(GLFWwindow* _window)
@@ -399,6 +419,7 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 		next = curr;
 		i--;
 	}
+
 	layer->attr.net_input_addr = next;
 	layer->attr.mouse = glGetUniformLocation(layer->program, "mouse");
 	layer->attr.resolution = glGetUniformLocation(layer->program, "resolution");
@@ -415,14 +436,14 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
+	glEnableVertexAttribArray(layer->attr.vertex_coord);
 	glBindBuffer(GL_ARRAY_BUFFER, array_buffer_fullscene_quad);
 	glVertexAttribPointer(layer->attr.vertex_coord,
 	                      4,
 	                      GL_FLOAT,
-	                      GL_FALSE, /* normalize */
-	                      16,
+	                      GL_FALSE,
+	                      0,
 	                      NULL);
-	glEnableVertexAttribArray(layer->attr.vertex_coord);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glUseProgram(0);
 
@@ -562,22 +583,20 @@ static int Graphics_SetupInitialState(Graphics *g)
 void Graphics_SetupViewport(Graphics *g) {
 
     int i, count, xpos, ypos;
+	xpos = 0;
+    ypos = 0;
+
+	glfwSetErrorCallback(handleGlfwError);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 	for (i = 0; i < count; i++) {
 		const GLFWvidmode* mode = glfwGetVideoMode(monitors[i]);
 		fprintf(stderr, "Monitor[%i]: %i x %i @ %i hz\n", i, mode->width, mode->height, mode->refreshRate);
 	}
-
-    xpos = 0;
-    ypos = 0;
-
-    #ifdef OSX
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    #endif
 
     switch (g->layout) {
         case Graphics_LAYOUT_PRIMARY_RESOLUTION: /* default */
@@ -620,7 +639,7 @@ void Graphics_SetupViewport(Graphics *g) {
 
 	if(!g->window) {
 		glfwTerminate();
-		handleError("GLFW create window failed", -1);
+		handleError("GLFW create window failed\n", -1);
 	}
 
     g->viewport.z *= fixDpiScale(g->window);
@@ -634,6 +653,7 @@ void Graphics_SetupViewport(Graphics *g) {
 #endif
     glfwSetWindowSizeCallback(g->window, handleResize);
     glfwSwapInterval(1);
+	printGLVersion();
 
 	Graphics_SetupInitialState(g);
 }
@@ -810,7 +830,8 @@ int Graphics_AllocateOffscreen(Graphics *g)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+		// deprecated
+        //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
         glBindTexture(GL_TEXTURE_2D, 0);                        // fix this too
     }
 #ifdef VIDEO
@@ -831,7 +852,8 @@ int Graphics_AllocateOffscreen(Graphics *g)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+		// deprecated
+        //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
         glBindTexture(GL_TEXTURE_2D, 0);                        // fix this too
     }
 #endif

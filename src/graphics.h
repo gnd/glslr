@@ -104,7 +104,7 @@ typedef struct RenderLayer_ {
 		GLuint vertex_coord;
 		netin_addr *net_input_addr;
 		GLuint mouse;
-		GLuint time;
+        GLuint time;
 		GLuint resolution;
 		GLuint backbuffer;
         GLuint video;
