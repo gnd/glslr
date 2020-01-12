@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 {
 	int ret;
 	fcntl(0, F_SETFL, O_NONBLOCK);
+	setenv( "MESA_DEBUG", "", 0 );
 
 	Glslr_HostInitialize();
 	PrintHead();

@@ -61,7 +61,7 @@ void init_device_and_buffers(char * devicename, Sourceparams_t * sourceparams, V
 
     _get_device_capabilities(devicename, fd, capabilities);
     sourceparams->iomethod = IO_METHOD_MMAP;        // select_io_method
-    _try_reset_crop_scale(sourceparams);            // set_device_capture_parms
+    //_try_reset_crop_scale(sourceparams);            // set_device_capture_parms
     _set_image_size_and_format(sourceparams);       // set_device_capture_parms
     _request_and_mmap_io_buffers(sourceparams);     // set_io_method, default to MMAP for now
     /* point captured.start at an empty buffer that we can draw until we get data  */

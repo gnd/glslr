@@ -702,10 +702,7 @@ static int Glslr_PrepareMainLoop(Glslr *gx)
     	init_device_and_buffers(gx->video_device, &(gx->sourceparams), &(gx->capabilities));
 	}
     Graphics_InitDisplayData(gx->graphics, &(gx->sourceparams));
-	#else
-	Graphics_InitDisplayData(gx->graphics);
 	#endif
-
 	return Graphics_AllocateOffscreen(gx->graphics);
 }
 

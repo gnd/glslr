@@ -159,7 +159,6 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout, int scaling_numer, int scaling
     void Graphics_InitDisplayData(Graphics *g, Sourceparams_t * sourceparams);
     void Graphics_Render(Graphics *g, Sourceparams_t * sourceparams, JpegDec_t* jpeg_dec);
 #else
-    void Graphics_InitDisplayData(Graphics *g);
     void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec);
 #endif
 
