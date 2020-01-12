@@ -35,11 +35,11 @@ static void CheckGLError(const char *file, int line, const char *func)
 		printf("\nfrom %s(%d)--: function %s\n", file, line, func);
 		for (i = 0; i < (int)ARRAY_SIZEOF(tbl); i++) {
 			if (e == tbl[i].code) {
-				printf("  OpenGL raise: code 0x%04x (%s)\n", e, tbl[i].str);
+				printf("  OpenGL error code %04x (%s)\n", e, tbl[i].str);
 				return;
 			}
 		}
-		printf("  OpenGLraise: code 0x%04x (?)\n", e);
+		printf("  OpenGL error code %04x (?)\n", e);
 	}
 }
 #endif

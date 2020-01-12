@@ -1,5 +1,4 @@
 #include "base.h"
-#include <math.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <pthread.h>
