@@ -828,9 +828,11 @@ int Graphics_AllocateOffscreen(Graphics *g)
     }
 #ifdef VIDEO
     if (g->enable_video) {
+		printf("We got to video\n");
         GLint internal_format = (GLint)g->displaydata.internal_format;
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
         g->video_texture_unit = (g->num_render_layer * 2) + 1;
+		printf("We got to 1\n");
         glBindTexture(GL_TEXTURE_2D, g->video_texture_object);
         glTexImage2D(GL_TEXTURE_2D,
                      0,
@@ -840,13 +842,16 @@ int Graphics_AllocateOffscreen(Graphics *g)
                      pixelformat,
                      GL_UNSIGNED_BYTE,
                      NULL);
+					 printf("We got to 2\n");
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		printf("We got to 3\n");
 		// deprecated
         //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
         glBindTexture(GL_TEXTURE_2D, 0);                        // fix this too
+		printf("We got to 4\n");
     }
 #endif
 	if (g->enable_backbuffer) {
@@ -856,6 +861,7 @@ int Graphics_AllocateOffscreen(Graphics *g)
 		DeterminePixelFormat(g->texture_pixel_format, &internal_format, &format, &type);
 #ifdef VIDEO
         g->backbuffer_texture_unit = (g->num_render_layer * 2) + 2;
+		printf("We got to 5\n");
 #else
         g->backbuffer_texture_unit = (g->num_render_layer * 2) + 1;
 #endif
@@ -972,6 +978,7 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
 			glUniform1i(p->attr.video, g->video_texture_unit);
 			glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
 			glBindTexture(GL_TEXTURE_2D, g->video_texture_object);
+			printf("We set the video textures\n");
 		}
         #endif
         if (g->enable_sony) {
@@ -1037,6 +1044,10 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
         GLenum pixelformat = (GLenum)g->displaydata.pixelformat;
 		glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, g->video_texture_object);
+		CHECK_GL();
+		printf("We bound the video texture\n");
+		printf("The value of captured->start is: %p\n", (void *) sourceparams->captured.start);
+		printf("The direction of captured->start is: %p\n", (void *) &sourceparams->captured.start);
 		glTexImage2D(GL_TEXTURE_2D,
                      0,             /* level */
                      internal_format,
@@ -1045,13 +1056,17 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
                      pixelformat,
                      GL_UNSIGNED_BYTE,
                      sourceparams->captured.start);
+					 CHECK_GL();
+		printf("We started capture\n");
         //Swizzle mask: https://www.opengl.org/wiki/Texture#Swizzle_mask
         // u, y1, v, y2
         //GLint swizzleMask[] = {GL_GREEN, GL_RED, GL_BLUE, GL_ONE};           // RGB1 - y1,u,v
         //GLint swizzleMask[] = {GL_ALPHA, GL_RED, GL_BLUE, GL_ONE};           // RGB2 - y2,u,v
         //glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
 		glActiveTexture(GL_TEXTURE0 + g->video_texture_unit);
+		printf("We made the texture active\n");
 		glBindTexture(GL_TEXTURE_2D, 0);
+		printf("We unbound the texture\n");
 	}
 #endif
     if (g->enable_sony) {

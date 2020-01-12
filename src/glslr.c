@@ -566,9 +566,11 @@ static void Glslr_Render(Glslr *gx)
 	int framesize;
     if (gx->use_video == 1) {
         capture_video_frame(&gx->sourceparams, &framesize);
+		printf("We captured a video frame\n");
         vs = GetCurrentTimeInMilliSecond();
     }
 	Graphics_Render(gx->graphics, &gx->sourceparams, &jpeg_dec);
+	printf("We made it through Graphics render\n");
 	#else
 	Graphics_Render(gx->graphics, &jpeg_dec);
 	#endif
@@ -621,8 +623,11 @@ static int Glslr_Update(Glslr *gx)
 	}
 	//Glslr_UpdateMousePosition(gx);
 	Glslr_SetUniforms(gx);
+	printf("We made it through uniforms\n");
 	Glslr_Render(gx);
+	printf("We made it through render\n");
 	Glslr_AdvanceFrame(gx);
+	printf("We made it through advance frame\n");
 
 	return 0;
 }
