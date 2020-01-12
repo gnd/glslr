@@ -428,14 +428,15 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-	glEnableVertexAttribArray(layer->attr.vertex_coord);
+
 	glBindBuffer(GL_ARRAY_BUFFER, array_buffer_fullscene_quad);
 	glVertexAttribPointer(layer->attr.vertex_coord,
 	                      4,
 	                      GL_FLOAT,
 	                      GL_FALSE,
-	                      0,
+	                      16,
 	                      NULL);
+	glEnableVertexAttribArray(layer->attr.vertex_coord);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glUseProgram(0);
 
@@ -582,7 +583,7 @@ void Graphics_SetupViewport(Graphics *g) {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 	for (i = 0; i < count; i++) {
