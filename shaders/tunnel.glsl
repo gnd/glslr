@@ -1,9 +1,4 @@
-#version 460
-
-#ifdef GL_ES
-	precision mediump float;
-#endif
-
+#version 330
 out vec4 PixelColor;
 uniform float time;
 uniform vec2 mouse;
@@ -35,5 +30,5 @@ void main( void ) {
 	 float x = mod(uv.x*resolution.x,resolution.x/3.0);
 	 float y = mod(uv.y*resolution.y+(resolution.y/2.),resolution.y/3.5);
 	 float v =  (x / y) - 0.7;
-	 PixelColor = vec4(vec3(.1-v,.9-v,1.-v)*w*ao,1.0);
+	 PixelColor = vec4(vec3(.9-v,.9-v,1.-v)*w*ao,1.0);
 }
