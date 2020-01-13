@@ -477,6 +477,9 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 	g->enable_backbuffer = 0;
     g->enable_video = 0;
     g->enable_sony = 0;
+	g->frame_number = 0;
+	g->enable_save = 0;
+	g->savename = NULL;
 	g->net_params = 0;
 	g->backbuffer_texture_object = 0;
 	g->backbuffer_texture_unit = 0;
@@ -1076,9 +1079,46 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
 		glActiveTexture(GL_TEXTURE0 + g->sony_texture_unit);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
+	if (g->enable_save) {
+		Graphics_SaveToFileTGA(g);
+	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	CHECK_GL();
 	glfwSwapBuffers(g->window);
+}
+
+
+void Graphics_SaveToFileTGA(Graphics *g) {
+	// Using TGA might get pretty big pretty soon:
+	// - filesize at 800x600 is ~1.4MB
+	// - filesize at 1280x720 is ~2.8MB
+	// eg. one hour 1280x720 @ 60fps is ~600GB
+	int width, height;
+	char filename[500];
+
+	// get window size and prepare pixels buffer
+	Graphics_GetWindowSize(g, &width, &height);
+    const int num_pixels = width * height * 3;
+    unsigned char pixels[num_pixels];
+
+	// copy data into pixels buffer
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glReadBuffer(GL_FRONT);
+	glReadPixels(0, 0, width, height, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixels);
+
+	// determine filename
+    sprintf(filename, g->savename, g->frame_number);
+    printf("Saving %s\n", filename);
+
+	// save into filenam
+    FILE *f = fopen(filename, "w");
+    short header[] = {0, 2, 0, 0, 0, 0, (short) width, (short) height, 24};
+    fwrite(&header, sizeof(header), 1, f);
+    fwrite(pixels, num_pixels, 1, f);
+    fclose(f);
+
+	// inc frame number
+	g->frame_number++;
 }
 
 void Graphics_SetBackbuffer(Graphics *g, int enable)
@@ -1094,6 +1134,11 @@ void Graphics_SetVideo(Graphics *g, int enable)
 void Graphics_SetSony(Graphics *g, int enable)
 {
 	g->enable_sony = enable;
+}
+
+void Graphics_SetSave(Graphics *g, int enable)
+{
+	g->enable_save = enable;
 }
 
 void Graphics_SetNetParams(Graphics *g, int params)

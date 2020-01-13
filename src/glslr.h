@@ -11,11 +11,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <stdbool.h>
+#include <pthread.h>
+
+/* glslr includes */
 #include "config.h"
 #include "base.h"
 #include "graphics.h"
-#include <stdbool.h>
-#include <pthread.h>
 #include "v4l2_controls.h"
 #include "util_textfile.h"
 
@@ -50,6 +52,7 @@ struct Glslr_ {
 	int use_backbuffer;
     int use_video;
     int use_sony;
+    int do_save;
 	int use_tcp;
 	int use_net;
 	int port;
@@ -71,6 +74,8 @@ struct Glslr_ {
 		int numer;
 		int denom;
 	} scaling;
+    char *dirpath;
+    char *filename;
 };
 
 typedef struct _fdpoll {

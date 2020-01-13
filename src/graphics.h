@@ -139,6 +139,9 @@ typedef struct Graphics_ {
 	int enable_backbuffer;
     int enable_video;
     int enable_sony;
+    int enable_save;
+    int frame_number;
+    char* savename;
 	int net_params;
     GLuint textures[2];
 	GLuint backbuffer_texture_object;
@@ -187,6 +190,8 @@ void Graphics_SetUniforms(Graphics *g, double t, netin_val *net_input_val, doubl
 void Graphics_SetBackbuffer(Graphics *g, int enable);
 void Graphics_SetVideo(Graphics *g, int enable);
 void Graphics_SetSony(Graphics *g, int enable);
+void Graphics_SetSave(Graphics *g, int enable);
+void Graphics_SaveToFileTGA(Graphics *g);
 void Graphics_SetNetParams(Graphics *g, int params);
 Graphics_LAYOUT Graphics_GetCurrentLayout(Graphics *g);
 Graphics_LAYOUT Graphics_GetLayout(Graphics_LAYOUT layout, int forward);
