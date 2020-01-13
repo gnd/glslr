@@ -281,6 +281,7 @@ int Glslr_Construct(Glslr *gx)
 	gx->use_backbuffer = 0;
     gx->use_video = 0;
     gx->use_sony = 0;
+	gx->do_save = 0;
 	gx->use_tcp = 0;
 	gx->use_net = 0;
 	gx->port = 6666;
@@ -297,7 +298,11 @@ int Glslr_Construct(Glslr *gx)
 	gx->verbose.debug = 0;
 	gx->scaling.numer = scaling_numer;
 	gx->scaling.denom = scaling_denom;
+	gx->save_tga = 0;
+	gx->save_dirpath = NULL;
+	gx->save_filename = NULL;
 
+	// TODO - check if all below needed
 	memset(&gx->mem, 0, sizeof(gx->mem));
 	gx->mem.memory = malloc(1);
 	gx->mem.size = 0;
@@ -384,6 +389,83 @@ void Glslr_Destruct(Glslr *gx)
     free(gx->mem.memory);
 }
 
+void SetSaveTGA(Glslr *gx)
+{
+    gx->save_tga = 1;
+	Graphics_SetSaveFormat(gx->graphics, "TGA");
+}
+
+void SetSaveDir(Glslr *gx, char *dirpath)
+{
+    gx->save_dirpath = malloc(strlen(dirpath) + 1);
+    strcpy(gx->save_dirpath, dirpath);
+}
+
+void SetSaveFile(Glslr *gx, char *filename)
+{
+    gx->save_filename = malloc(strlen(filename) + 1);
+    strcpy(gx->save_filename, filename);
+}
+
+// TODO - why so IF - make this more concise by setting extension first
+void Glslr_SetSaveDestination(Glslr *gx, Graphics *g)
+{
+    if (gx->save_dirpath == NULL) {
+        if (gx->save_filename == NULL) {
+			if (gx->save_tga == 1) {
+				// using default filename with TGA
+	            g->save_name = malloc(strlen("glslr_%05d.tga") + 1);
+	            strcpy(g->save_name, "glslr_%05d.tga");
+			} else {
+				// using default filename with JPEG
+	            g->save_name = malloc(strlen("glslr_%05d.jpg") + 1);
+	            strcpy(g->save_name, "glslr_%05d.jpg");
+			}
+        } else {
+			if (gx->save_tga == 1) {
+            	g->save_name = malloc(strlen(gx->save_filename) + 4 + 1); // .. + strlen(".tga") + 1
+            	strcpy(g->save_name, gx->save_filename);
+				strcat(g->save_name, ".tga");
+			} else {
+				g->save_name = malloc(strlen(gx->save_filename) + 4 + 1); // .. + strlen(".jpg") + 1
+            	strcpy(g->save_name, gx->save_filename);
+				strcat(g->save_name, ".jpg");
+			}
+        }
+    } else {
+        if (gx->save_filename == NULL) {
+			if (gx->save_tga == 1) {
+            	// using default filename with tga
+            	g->save_name = malloc(strlen(gx->save_dirpath) + strlen("glslr_%05d.tga") + sizeof(char) + 1);
+            	strcpy(g->save_name, gx->save_dirpath);
+            	strcat(g->save_name, "/");
+            	strcat(g->save_name, "glslr_%05d.tga");
+			} else {
+				// using default filename with jpg
+            	g->save_name = malloc(strlen(gx->save_dirpath) + strlen("glslr_%05d.jpg") + sizeof(char) + 1);
+            	strcpy(g->save_name, gx->save_dirpath);
+            	strcat(g->save_name, "/");
+            	strcat(g->save_name, "glslr_%05d.jpg");
+			}
+        } else {
+			if (gx->save_tga == 1) {
+	            g->save_name = malloc(strlen(gx->save_dirpath) + strlen(gx->save_filename) + sizeof(char)*5 + 1);
+	            strcpy(g->save_name, gx->save_dirpath);
+	            strcat(g->save_name, "/");
+	            strcat(g->save_name, gx->save_filename);
+				strcat(g->save_name, ".tga");
+			} else {
+				g->save_name = malloc(strlen(gx->save_dirpath) + strlen(gx->save_filename) + sizeof(char)*5 + 1);
+	            strcpy(g->save_name, gx->save_dirpath);
+	            strcat(g->save_name, "/");
+	            strcat(g->save_name, gx->save_filename);
+				strcat(g->save_name, ".jpg");
+			}
+        }
+    }
+    printf("Files will be saved to: %s\n", g->save_name);
+}
+
 
 static int Glslr_SwitchBackbuffer(Glslr *gx)
 {
@@ -406,7 +488,7 @@ static int Glslr_SwitchVideo(Glslr *gx)
     }
 	return Graphics_ApplyOffscreenChange(gx->graphics);
 	#else
-	return 1;
+	return 0;
 	#endif
 }
 
@@ -416,6 +498,14 @@ static int Glslr_SwitchSony(Glslr *gx)
 	gx->use_sony ^= 1;
 	Graphics_SetSony(gx->graphics, gx->use_sony);
 	return Graphics_ApplyOffscreenChange(gx->graphics);
+}
+
+
+static int Glslr_SwitchSave(Glslr *gx)
+{
+	gx->do_save ^= 1;
+	Graphics_SetSave(gx->graphics, gx->do_save);
+	return 0;
 }
 
 
@@ -630,11 +720,12 @@ static int Glslr_Update(Glslr *gx)
 static void PrintHelp(void)
 {
 	printf("Key:\n");
-	printf("  t        FPS printing\n");
 	printf("  [ or ]   offscreen scaling (defunct)\n");
 	printf("  b        backbuffer ON/OFF\n");
-    printf("  v        video input ON/OFF\n");
-    printf("  s        sony input ON/OFF\n");
+	printf("  c        sony input ON/OFF\n");
+	printf("  s        save file ON/OFF\n");
+	printf("  t        FPS output ON/OFF \n");
+	printf("  v        video input ON/OFF\n");
 	printf("  q        exit\n");
 }
 
@@ -674,6 +765,12 @@ void Glslr_Usage(void)
 #else
 	printf("    No video support compiled.\n");
 #endif
+	printf("  saving:\n");
+	printf("    --save-tga                              use TGA format instead of the default JPEG\n");
+	printf("    --save-dir [dir]                        directory where to save frames\n");
+	printf("    --save-file [filename]                  filename to save frames in the form: name_%%0d\n");
+	printf("                                            %%0d stands for number of digits, eg. my_%%06d\n");
+	printf("                                            will be saved as my_000001.jpg, my_000002.jpg, etc.. (or .tga)\n");
 	printf("\n");
 }
 
@@ -704,6 +801,7 @@ static int Glslr_PrepareMainLoop(Glslr *gx)
 	return Graphics_AllocateOffscreen(gx->graphics);
 }
 
+// TODO implement a 'screenshot' function (just one image saved on keypress)
 static void Glslr_MainLoop(Glslr *gx)
 {
 	for (;;) {
@@ -724,10 +822,15 @@ static void Glslr_MainLoop(Glslr *gx)
 			// defunct
 			//Glslr_ChangeScaling(gx, -1);
 			break;
-        case 's':
-        case 'S':
+        case 'c':
+        case 'C':
 			Glslr_SwitchSony(gx);
 			printf("Sony ACH3 input %s\n", gx->use_sony ? "ON": "OFF");
+			break;
+		case 's':
+	    case 'S':
+			Glslr_SwitchSave(gx);
+			printf("Saving %s\n", gx->do_save ? "ON": "OFF");
 			break;
 		case 't':
 		case 'T':
@@ -742,6 +845,7 @@ static void Glslr_MainLoop(Glslr *gx)
 			Glslr_SwitchVideo(gx);
 			printf("video input %s\n", gx->use_video ? "ON": "OFF");
 			break;
+		case 'h':
 		case '?':
 			PrintHelp();
 		default:
@@ -879,6 +983,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	int layer;
     int width, height;
     char **layers;
+	char dirpath[255], filename[255];
 	Graphics *g;
 
 	g = gx->graphics;
@@ -960,12 +1065,12 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 		}
         if (!strcmp(argv[i], "--port")) {
             if (++i>=argc) Glslr_Usage();
-			gx->port = strtol(argv[i], NULL, 10); /* handle error gnd */
+			gx->port = strtol(argv[i], NULL, 10); /* TODO handle error gnd */
             continue;
 		}
         if (!strcmp(argv[i], "--params")) {
             if (++i>=argc) Glslr_Usage();
-			gx->net_params=atoi(argv[i]); /* handle error gnd */
+			gx->net_params=atoi(argv[i]); /* TODO handle error gnd */
             continue;
 		}
 		if (!strcmp(argv[i], "--sony")) {
@@ -974,9 +1079,37 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 		}
         if (!strcmp(argv[i], "--vdev")) {
             if (++i>=argc) Glslr_Usage();
-			gx->video_dev_num=atoi(argv[i]); /* handle error gnd */
+			gx->video_dev_num=atoi(argv[i]); /* TODO handle error gnd */
             continue;
 		}
+		if (!strcmp(argv[i], "--save-tga")) {
+            SetSaveTGA(gx);
+            continue;
+        }
+		if (!strcmp(argv[i], "--save-dir"))
+        {
+            if (++i>=argc) Glslr_Usage();
+            if (sscanf(argv[i], "%s", dirpath) < 1) Glslr_Usage();
+            // remove trailing slash
+            if (dirpath[strlen(dirpath)-1] == '/') {
+                dirpath[strlen(dirpath)-1] = '\0';
+            }
+            // check if dir exists
+            struct stat stats;
+            stat(dirpath, &stats);
+            if (!S_ISDIR(stats.st_mode)) {
+                printf("Save directory %s doesnt exist.\nExiting.\n", dirpath);
+                exit(1);
+            }
+            SetSaveDir(gx, dirpath);
+            continue;
+        }
+        if (!strcmp(argv[i], "--save-file")) { // TODO exit on malformed filename
+			if (++i>=argc) Glslr_Usage();
+            if (sscanf(argv[i], "%s", filename) < 1) Glslr_Usage();
+            SetSaveFile(gx, filename);
+            continue;
+        }
 
         // the rest is layers
         if ((argc - i) < 1) {
@@ -991,7 +1124,9 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
         layers[layer] = NULL;
 	}
 
-    Graphics_SetupViewport(gx->graphics); /* has to be done after args parsing but before appending layers */
+	// Determine the final saving path + filename
+    Glslr_SetSaveDestination(gx, g);
+    Graphics_SetupViewport(g); /* has to be done after args parsing but before appending layers */
     Graphics_SetBackbuffer(g, gx->use_backbuffer);
 	Graphics_SetSony(g, gx->use_sony);
 
@@ -1018,6 +1153,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
 	if (gx->use_net) {
 		Glslr_Listen(gx->use_tcp, gx->port);
 	}
+	printf("Press h or ? for help\n");
 
 	return (layer == 0) ? 1 : 0;
 }
