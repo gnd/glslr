@@ -1104,6 +1104,7 @@ int Glslr_ParseArgs(Glslr *gx, int argc, const char *argv[])
             SetSaveDir(gx, dirpath);
             continue;
         }
+		//TODO saving jpeg segfaults on intel gfx cards (pbbly related to BGR_EXT or to the opengl context)
         if (!strcmp(argv[i], "--save-file")) { // TODO exit on malformed filename
 			if (++i>=argc) Glslr_Usage();
             if (sscanf(argv[i], "%s", filename) < 1) Glslr_Usage();
