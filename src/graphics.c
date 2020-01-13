@@ -366,7 +366,6 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 	netin_addr *next=NULL;
 	int i;
 	char name[5]; /* MAX 99 ! */
-
 	CHECK_GL();
 	glCompileShader(layer->fragment_shader);
 	glGetShaderiv(layer->fragment_shader, GL_COMPILE_STATUS, &param);
@@ -479,7 +478,8 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
     g->enable_sony = 0;
 	g->frame_number = 0;
 	g->enable_save = 0;
-	g->savename = NULL;
+	g->save_name = NULL;
+	g->save_format = NULL;
 	g->net_params = 0;
 	g->backbuffer_texture_object = 0;
 	g->backbuffer_texture_unit = 0;
@@ -1080,7 +1080,11 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	if (g->enable_save) {
-		Graphics_SaveToFileJPEG(g);
+		if (!strcmp(g->save_format, "TGA")) {
+			Graphics_SaveToFileTGA(g);
+		} else {
+			Graphics_SaveToFileJPG(g);
+		}
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	CHECK_GL();
@@ -1104,7 +1108,7 @@ void Graphics_SaveToFileTGA(Graphics *g) {
     unsigned char pixels[num_pixels];
 
 	// determine filename
-	sprintf(filename, g->savename, g->frame_number);
+	sprintf(filename, g->save_name, g->frame_number);
 	printf("Saving %s\n", filename);
 
 	// copy data into pixels buffer
@@ -1124,7 +1128,7 @@ void Graphics_SaveToFileTGA(Graphics *g) {
 }
 
 // TODO switch to libjpeg-turbo
-void Graphics_SaveToFileJPEG(Graphics *g) {
+void Graphics_SaveToFileJPG(Graphics *g) {
 	// - filesize at 800x600 is ~220kB
 	// - filesize at 1280x720 is ~310kB
 	// eg. one hour 1280x720 @ 60fps is ~65GB
@@ -1139,7 +1143,7 @@ void Graphics_SaveToFileJPEG(Graphics *g) {
     unsigned char pixels[num_pixels];
 
 	// determine filename & open file
-    sprintf(filename, g->savename, g->frame_number);
+    sprintf(filename, g->save_name, g->frame_number);
     printf("Saving %s\n", filename);
 	FILE *f = fopen(filename, "w");
 
@@ -1199,6 +1203,12 @@ void Graphics_SetSony(Graphics *g, int enable)
 void Graphics_SetSave(Graphics *g, int enable)
 {
 	g->enable_save = enable;
+}
+
+void Graphics_SetSaveFormat(Graphics *g, const char *format)
+{
+	g->save_format = malloc(strlen(format) + 1);
+	strcpy(g->save_format, format);
 }
 
 void Graphics_SetNetParams(Graphics *g, int params)

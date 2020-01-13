@@ -74,8 +74,10 @@ struct Glslr_ {
 		int numer;
 		int denom;
 	} scaling;
-    char *dirpath;
-    char *filename;
+    // TODO - could be a struct too
+    int save_tga;
+    char *save_dirpath;
+    char *save_filename;
 };
 
 typedef struct _fdpoll {
