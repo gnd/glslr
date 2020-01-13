@@ -479,7 +479,8 @@ Graphics *Graphics_Create(Graphics_LAYOUT layout,
 	g->frame_number = 0;
 	g->enable_save = 0;
 	g->save_name = NULL;
-	g->save_format = NULL;
+	g->save_format = malloc(strlen("JPG") + 1);
+	strcpy(g->save_format, "JPG");
 	g->net_params = 0;
 	g->backbuffer_texture_object = 0;
 	g->backbuffer_texture_unit = 0;
@@ -1082,7 +1083,7 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
 	if (g->enable_save) {
 		if (!strcmp(g->save_format, "TGA")) {
 			Graphics_SaveToFileTGA(g);
-		} else {
+		} else { // default
 			Graphics_SaveToFileJPG(g);
 		}
 	}
