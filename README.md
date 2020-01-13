@@ -8,7 +8,7 @@
 - Enables GLSL code-reuse across projects with support of #include.
 - Has experimental Video4Linux support.
 - Has support for livestreaming from a Sony AS30 ActionCam.
-- Can save frames to .tga
+- Can save frames to .jpg or .tga.
 
 ## Installation:
 
@@ -81,11 +81,11 @@ options:
   video:
     --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)
   saving:
+    --save-tga                              use TGA format instead of the default JPEG
     --save-dir [dir]                        directory where to save frames
-    --save-file [filename]                  filename to save frames in the form: name_%0d.tga
-                                            %0d stands for number of digits, eg. my_%06d.tga
-                                            will be saved as my_000001.tga, my_000002.tga, etc..
-
+    --save-file [filename]                  filename to save frames in the form: name_%0nd
+                                            %0nd stands for number of digits, eg. my_%06d
+                                            will be saved as my_000001.jpg, my_000002.jpg, etc.. (or .tga)
 ```
 ## Usage with network:
 ```
