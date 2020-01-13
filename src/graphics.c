@@ -1080,7 +1080,7 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 	if (g->enable_save) {
-		Graphics_SaveToFileTGA(g);
+		Graphics_SaveToFileJPEG(g);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	CHECK_GL();
@@ -1099,16 +1099,18 @@ void Graphics_SaveToFileTGA(Graphics *g) {
 	// get window size and prepare pixels buffer
 	Graphics_GetWindowSize(g, &width, &height);
     const int num_pixels = width * height * 3;
+	// here it depends what is the depth of the offscreenformat
+	// TODO test with RGBA444 and RGB565
     unsigned char pixels[num_pixels];
+
+	// determine filename
+	sprintf(filename, g->savename, g->frame_number);
+	printf("Saving %s\n", filename);
 
 	// copy data into pixels buffer
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, width, height, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixels);
-
-	// determine filename
-    sprintf(filename, g->savename, g->frame_number);
-    printf("Saving %s\n", filename);
 
 	// save into filenam
     FILE *f = fopen(filename, "w");
@@ -1120,6 +1122,64 @@ void Graphics_SaveToFileTGA(Graphics *g) {
 	// inc frame number
 	g->frame_number++;
 }
+
+// TODO switch to libjpeg-turbo
+void Graphics_SaveToFileJPEG(Graphics *g) {
+	// - filesize at 800x600 is ~220kB
+	// - filesize at 1280x720 is ~310kB
+	// eg. one hour 1280x720 @ 60fps is ~65GB
+	int width, height;
+	char filename[500];
+
+	// get window size and prepare pixels buffer
+	Graphics_GetWindowSize(g, &width, &height);
+    const int num_pixels = width * height * 3;
+	// here it depends what is the depth of the offscreen format
+	// TODO test with RGBA444 and RGB565
+    unsigned char pixels[num_pixels];
+
+	// determine filename & open file
+    sprintf(filename, g->savename, g->frame_number);
+    printf("Saving %s\n", filename);
+	FILE *f = fopen(filename, "w");
+
+	// copy data into pixels buffer
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glReadBuffer(GL_FRONT);
+	glReadPixels(0, 0, width, height, GL_BGR_EXT, GL_UNSIGNED_BYTE, pixels);
+
+	// setup jpeglib
+	struct jpeg_compress_struct cinfo;
+	struct jpeg_error_mgr       jerr;
+	cinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_compress(&cinfo);
+	jpeg_stdio_dest(&cinfo, f);
+	cinfo.image_width      = width;
+	cinfo.image_height     = height;
+	cinfo.input_components = 3;
+	cinfo.in_color_space   = JCS_EXT_BGR;
+	jpeg_set_defaults(&cinfo);
+	jpeg_set_quality (&cinfo, 99, true); // TODO control via input args
+
+	// save into file
+	jpeg_start_compress(&cinfo, true);
+	JSAMPROW row_pointer;
+	row_pointer = (JSAMPROW) &pixels[0];
+ 	while (cinfo.next_scanline < cinfo.image_height) {
+		// here it depends what is the depth of the offscreenformat
+		// TODO test with RGBA444 and RGB565
+		row_pointer = (JSAMPROW) &pixels[cinfo.next_scanline*(3)*width];
+		jpeg_write_scanlines(&cinfo, &row_pointer, 1);
+	}
+
+	// finish writing & close
+	jpeg_finish_compress(&cinfo);
+    fclose(f);
+
+	// inc frame number
+	g->frame_number++;
+}
+
 
 void Graphics_SetBackbuffer(Graphics *g, int enable)
 {

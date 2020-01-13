@@ -406,7 +406,7 @@ void Glslr_SetSaveDestination(Glslr *gx, Graphics *g)
     if (gx->dirpath == NULL) {
         if (gx->filename == NULL) {
             // using default filename
-            g->savename = malloc(strlen("glslr_%05d.tga") + 1);
+            g->savename = malloc(strlen("glslr_%05d.jpg") + 1);
             strcpy(g->savename, "glslr_%05d.tga");
         } else {
             g->savename = malloc(strlen(gx->filename) + 1);

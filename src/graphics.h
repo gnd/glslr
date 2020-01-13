@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <jpeglib.h>
 
 #ifdef OSX
     #define GL_SILENCE_DEPRECATION
@@ -192,6 +193,7 @@ void Graphics_SetVideo(Graphics *g, int enable);
 void Graphics_SetSony(Graphics *g, int enable);
 void Graphics_SetSave(Graphics *g, int enable);
 void Graphics_SaveToFileTGA(Graphics *g);
+void Graphics_SaveToFileJPEG(Graphics *g);
 void Graphics_SetNetParams(Graphics *g, int params);
 Graphics_LAYOUT Graphics_GetCurrentLayout(Graphics *g);
 Graphics_LAYOUT Graphics_GetLayout(Graphics_LAYOUT layout, int forward);
