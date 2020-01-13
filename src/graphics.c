@@ -636,6 +636,7 @@ void Graphics_SetupViewport(Graphics *g) {
 
 	g->window = glfwCreateWindow(g->viewport.z, g->viewport.w, "glslr", NULL, NULL);
 
+
 	if(!g->window) {
 		glfwTerminate();
 		handleError("GLFW create window failed\n", -1);
@@ -1089,6 +1090,7 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	CHECK_GL();
+	glfwSwapInterval(1);
 	glfwSwapBuffers(g->window);
 }
 
