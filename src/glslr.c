@@ -730,9 +730,9 @@ void Glslr_Usage(void)
 #endif
 	printf("  saving:\n");
 	printf("    --save-dir [dir]                        directory where to save frames\n");
-	printf("    --save-file [filename]                  filename to save frames in the form: name_%%0d.jpeg\n");
-	printf("                                            %%0d stands for number of digits, eg. my_%%06d.jpeg\n");
-	printf("                                            will be saved as my_000001.jpeg, my_000002.jpeg, etc..\n");
+	printf("    --save-file [filename]                  filename to save frames in the form: name_%%0d.tga\n");
+	printf("                                            %%0d stands for number of digits, eg. my_%%06d.tga\n");
+	printf("                                            will be saved as my_000001.tga, my_000002.tga, etc..\n");
 	printf("\n");
 }
 
