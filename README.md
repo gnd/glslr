@@ -13,7 +13,7 @@
 
 On Ubuntu:
 ```
-apt-get install git libgles2-mesa-dev libglfw3-dev
+apt-get install git libgles2-mesa-dev libglfw3-dev libcurl4-openssl-dev libjpeg8-dev
 git clone https://github.com/gnd/glslr
 cd glslr
 make
