@@ -56,15 +56,15 @@ LIBS+=-ljpeg
 # Linux
 ifeq (yes, $(LINUX))
   LIBS+=-lGL
-  LIBS+=-lX11
-  LIBS+=-lXrandr
-  LIBS+=-lXi
-  LIBS+=-lXxf86vm
-  LIBS+=-lXcursor
-  LIBS+=-lXinerama
-  LIBS+=-lXrender
-  LIBS+=-lXext
-  LIBS+=-lXdamage
+  #LIBS+=-lX11
+  #LIBS+=-lXrandr
+  #LIBS+=-lXi
+  #LIBS+=-lXxf86vm
+  #LIBS+=-lXcursor
+  #LIBS+=-lXinerama
+  #LIBS+=-lXrender
+  #LIBS+=-lXext
+  #LIBS+=-lXdamage
 endif
 # Mac OS
 ifeq (yes, $(MACOS))
