@@ -29,6 +29,7 @@ ifeq (yes, $(VIDEO))
 endif
 
 # Set some basic flags
+CFLAGS+=-march=native
 CFLAGS+=-Wall
 CFLAGS+=-Wextra
 CFLAGS+=-Wwrite-strings
