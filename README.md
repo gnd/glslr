@@ -8,6 +8,7 @@
 - Enables GLSL code-reuse across projects with support of #include.
 - Has experimental Video4Linux support.
 - Has support for livestreaming from a Sony AS30 ActionCam.
+- Can save frames to .tga
 
 ## Installation:
 
@@ -79,6 +80,11 @@ options:
      --sony                                 enable Sony ActionCAM AS30 support
   video:
     --vdev [device number]                  v4l2 device number (default: 0 eg. /dev/video0)
+  saving:
+    --save-dir [dir]                        directory where to save frames
+    --save-file [filename]                  filename to save frames in the form: name_%0d.tga
+                                            %0d stands for number of digits, eg. my_%06d.tga
+                                            will be saved as my_000001.tga, my_000002.tga, etc..
 
 ```
 ## Usage with network:
