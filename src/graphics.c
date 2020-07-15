@@ -374,7 +374,8 @@ static int RenderLayer_BuildProgram(RenderLayer *layer,
 		return 2;
 	}
     // Report success
-    printf("Shader \033[32mOK\033[0m\n");
+    //printf("Shader \033[32mOK\033[0m\n");
+	printf("\033[32mOK\033[0m\n");
 
 	new_program = glCreateProgram();
 	glAttachShader(new_program, vertex_shader);
