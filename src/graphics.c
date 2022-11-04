@@ -1024,6 +1024,7 @@ void Graphics_Render(Graphics *g, JpegDec_t* jpeg_dec) {
 		prev_layer_texture_object = p->texture_object;
 	}
 
+	// TODO - can we make a array of backbuffer textures - eg. use it as a delay ? 
 	if (g->enable_backbuffer) {
 		int width, height;
 		Graphics_GetSourceSize(g, &width, &height);
