@@ -1,5 +1,7 @@
 # glslr
 
+![Ultra-lightweight GLSL interpreter](glslr.png)
+
 ## Features
 - Ultra-lightweight GLSL livecoding framework for Linux and Mac OS X.
 - Enables quick fragment shader development in your favorite editor.
